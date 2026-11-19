@@ -2,6 +2,16 @@
 
 The plugins in `packages/` are the parts built here. They are not the whole pipeline — three of the eight layers are third-party packages that you install yourself. They are listed here instead of being vendored, because they are other people's work and should be consumed as such.
 
+## One command, pinned
+
+```bash
+node scripts/install.mjs --tier full
+```
+
+That writes a dedicated profile, installs the three plugins below at these exact versions, and verifies each one mounted. The manual commands are kept further down because you should know what the script does, not because you need to type them.
+
+Why a script and not three commands in a README: a bare package name can install the previous release and silently succeed (failure #7). A script cannot forget the version. It also asks each installed package which component ids it mounts, so `misakanet` is verified as `misakanet-mcp` rather than reported missing.
+
 ## The three that matter
 
 | Package | Version | Layer | Why this one |
@@ -23,7 +33,7 @@ dsh plugin --profile <your-profile> add misakanet@3.5.0
 | Package | Version / source | Layer | Note |
 |---|---|---|---|
 | `dsh-zotero` | `^0.9.0` | literature | evidence store; UI plus API |
-| `dsh-purge` | `github:YuJunZhiXue/dsh-purge` | ops | rule injection, rewind, skills. Provides the patch layer this repo's `cordis.patch.yml` targets |
+| `dsh-purge` | `github:YuJunZhiXue/dsh-purge` | ops | rule injection, rewind, skills. Supplies the patch layer this repo's `cordis.patch.yml` extends. Opt-in: `node scripts/install.mjs --with-purge` — it is git-hosted, so pnpm blocks its build script until you add the `allowBuilds` key it prints, and a script must not fake that. |
 | `dshmarket` | `^1.47.0` | ops | plugin market |
 | `dsh-web` / `@linxin666/dsh-remote-web-ui` | git / `^0.3.23` | ops | UI skins. Pure decoration; not in the task flow |
 

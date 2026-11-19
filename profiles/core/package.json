@@ -1,0 +1,22 @@
+{
+  "name": "dsh-profile-math-core",
+  "private": true,
+  "description": "Core tier: what `node scripts/install.mjs` writes at tier=core. `file:<repo>` is a placeholder — replace it with the clone path, or let the installer write this file for you.",
+  "dependencies": {
+    "dsh-plugin-lean-math": "file:<repo>/packages/lean-math",
+    "dsh-plugin-claim-verify": "file:<repo>/packages/claim-verify",
+    "dsh-plugin-research-gate": "file:<repo>/packages/research-gate"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-plugin-lean-math",
+        "dsh-plugin-claim-verify",
+        "dsh-plugin-research-gate"
+      ],
+      "patchReload": "live"
+    }
+  }
+}

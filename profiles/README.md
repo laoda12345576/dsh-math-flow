@@ -1,36 +1,37 @@
 # profiles
 
-Two profiles. Start with `least`, move to `full` once the kernel path works.
+Two tiers. `package.json` in each directory is **what the installer writes**, kept here so you can read the shape without running anything — not a file to hand-copy and edit. Use the installer.
 
-| Profile | Contents | Use |
+```bash
+node scripts/install.mjs                  # tier=core, profile=math-flow
+node scripts/install.mjs --tier full      # + memory, team, negative knowledge
+```
+
+| Tier | Contents | Use |
 |---|---|---|
-| `least` | lean-math + claim-verify + base | the minimum that can produce a kernel verdict. Use this to confirm your Lean install before blaming the pipeline. |
-| `full` | the shipped pipeline | memory, team, negative knowledge, literature, output |
+| `core` | lean-math + claim-verify + research-gate | the minimum that produces a kernel verdict and refuses to compute before surveying. Confirm your Lean install here before blaming the pipeline. |
+| `full` | core + meow-memory + agent-teams + misakanet | memory across compaction, persistent members, negative knowledge. The pipeline proper. |
 
-## Installing
+`profiles/full/cordis.patch.yml` is the patch layer: team policy, per-role tool allow-lists, and the watchdog decision (installed, descendants off — the comments in that file are the design). The installer copies it only for `--tier full`, because every block in it configures a bundle core does not have; applying it to core produces boot warnings about entries nobody asked for. `--patch` forces it, `--no-patch` forbids it.
 
-A dsh profile is a directory with its own `package.json`. Copy the one you want:
+## What the installer actually does
 
-```bash
-mkdir -p ~/.dsh/profiles/math
-cp profiles/least/package.json ~/.dsh/profiles/math/
-dsh --profile math --dump-config      # confirm what is actually mounted
-```
+1. Preflight: `node` ≥ 22.5, `dsh`, `pnpm` on PATH. It stops rather than half-installing.
+2. Writes the profile manifest with `@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`. A profile name with no shipped template would otherwise boot with `dsh-base` only — no UI.
+3. `dsh plugin --profile <name> add <spec>` per package, one at a time. Not a batch: a failure leaves a resumable profile instead of an unclear one.
+4. Skips anything already at the pinned version, so re-running is a no-op.
+5. Reads `dsh --profile <name> --dump-config` and checks each plugin's **actual component id**, resolved from the package's own `cordis.patch.yml`.
 
-`--dump-config` is the safe command: it reports the mounted bundle and component count and does not start a server.
+Step 5 exists because step 3 succeeding means nothing. `dsh plugin add` reports success when pnpm installed the package; it says nothing about whether the component mounted. And the component id is not the package name — `misakanet@3.5.0` mounts as `misakanet-mcp`, which a name-matching verifier reports as a broken install.
 
-Then apply the patch layer, if you want the team policy:
+## When it fails
 
-```bash
-cp profiles/full/cordis.patch.yml ~/.dsh/profiles/math/cordis.patch.yml
-```
+**`dsh plugin` exits non-zero.** Re-run; installs are idempotent. If the failing item is third-party, read the pnpm output — a registry hiccup looks the same as a bad pin.
 
-## Version skew is the main failure mode
+**Verification shows MISS but install succeeded.** Version skew, or the bundle list did not reconcile. Check `~/.dsh/profiles/<name>/package.json` for the entry under `dsh.profile.bundles`, then `--dump-config` and read stderr.
 
-Plugin packages are not all released at the same host version. Before adding anything:
+**Patch warnings at boot.** `patch: entry "watchdog" not found` is expected when that bundle is not installed — the patch carries a disabled block for it deliberately. The config still mounts.
 
-1. Read the host version: `dsh --version`
-2. Check the plugin's compatibility note in its README
-3. Pin exact versions (`name@x.y.z`). A bare name can install the previous version and report success — see failure #7 in [`../docs/03-failure-log.md`](../docs/03-failure-log.md).
+**Toolchain missing.** `node scripts/doctor.mjs` — separate problem, separate report. The plugins mount without Lean; they just return errors instead of verdicts.
 
-If a plugin fails to mount, do not assume the plugin is broken. Dump the config and read the console first; both are version-skew symptoms in practice.
+Versions are pinned on purpose. Before changing one: `dsh --version`, then the plugin's compatibility note, then pin the exact release.

@@ -70,20 +70,38 @@ Tool-by-tool reference: [`docs/02-tool-reference.md`](docs/02-tool-reference.md)
 
 ## Quick start
 
+One command. It creates its own profile (`math-flow`) so your working profile is not touched, installs every plugin at a pinned version, and verifies what actually mounted:
+
 ```bash
-# 1. a dsh profile that already works
-dsh --profile web --dump-config     # confirm what is actually mounted
-
-# 2. add the pipeline
-dsh plugin --profile web add <this-repo>/packages/lean-math
-
-# 3. verify the kernel path end to end
-#    (in a session) lean_status → lean_verify_proof on a trivial lemma
+git clone <this-repo> && cd dsh-math-flow
+node scripts/install.mjs                 # core: kernel + frozen claims + order gate
 ```
 
-Requirements: Node ≥ 22.5, `elan` + Lean 4 + Lake on `PATH`, and a local Mathlib checkout for `import Mathlib` proofs.
+```bash
+node scripts/install.mjs --tier full     # + memory, team, negative knowledge
+node scripts/install.mjs --dry-run       # print the plan, change nothing
+node scripts/install.mjs --verify-only   # check an existing profile
+node scripts/doctor.mjs                  # what toolchain is missing (read-only)
+```
 
-Per-plugin install notes live in each `packages/*/README.md`. Optional pieces (`wps-bridge`, `jammers-sim`, `ollama`) are platform- or hardware-specific and can be skipped without breaking the math path.
+The installer refuses to start if `node`, `dsh`, or `pnpm` is missing, installs one package at a time so a failure leaves a resumable profile, and skips anything already at the pinned version. It ends by reading `dsh --profile <name> --dump-config` and checking each plugin's *actual component id* — not the package name, because `misakanet@3.5.0` mounts as `misakanet-mcp` and a verifier that assumes otherwise reports a healthy install as broken.
+
+```
+  ok   lean-math  (dsh-plugin-lean-math)
+  ok   claim-verify  (dsh-plugin-claim-verify)
+  ok   misakanet-mcp  (misakanet)
+  profile math-flow: 159 components, 0 of 6 expected plugins missing
+```
+
+Then:
+
+```bash
+dsh --profile math-flow        # boot it
+```
+
+Requirements: Node ≥ 22.5, `dsh`, `pnpm`, and `git`. Lean 4 + Lake on `PATH` and a Mathlib checkout are needed for `import Mathlib` proofs — the plugins mount without them and every verdict comes back as an error, which is the honest failure mode. `node scripts/doctor.mjs` lists exactly what is missing and the command that fixes it; it deliberately does not install a 4 GB Mathlib for you.
+
+Per-plugin notes live in each `packages/*/README.md`. Optional pieces (`wps-bridge`, `jammers-sim`, `ollama`) are platform- or hardware-specific and can be skipped without breaking the math path.
 
 ## What is in this repo, and what you install separately
 
@@ -134,7 +152,7 @@ Every run records: turns, tool calls, duplicate calls, compactions, human interv
 
 ## Status
 
-Alpha. The plugins are extracted from a working single-machine setup and are being moved into `packages/` one at a time, in dependency order (`lean-math` → `math-strategies` / `proof-harness` → `claim-verify` → rest). Configuration in `profiles/` is de-identified; host patches that depend on a specific `dsh` build are quarantined in `patches/` with their target version stated.
+Alpha. Three plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`); the other five are listed in [`packages/README.md`](packages/README.md) with their dependency order and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified; host patches that depend on a specific `dsh` build are quarantined in `patches/` with their target version stated.
 
 Contributions that add a *measurement* are more welcome than contributions that add a plugin.
 
