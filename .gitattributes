@@ -1,0 +1,4 @@
+# Skills are read by the host and by editors on every platform. Pin LF so a
+# Windows checkout does not hand the model a file whose diffs are all line
+# endings — that already happened once during extraction.
+skills/** text eol=lf
