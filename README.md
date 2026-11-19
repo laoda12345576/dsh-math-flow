@@ -4,7 +4,7 @@
 
 Most "agent stack" repos are a screenshot of a plugin list. This one ships the list, the configuration, the plugins, and — the part that matters — **the experiment protocol that tells you whether any of it worked.**
 
-Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib.
+Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib. — [中文](README.zh-CN.md)
 
 > **What is actually here today.** Three plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: three are in `packages/`, three are third-party packages pinned by version, and eight still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
 
