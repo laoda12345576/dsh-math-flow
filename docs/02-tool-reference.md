@@ -36,6 +36,22 @@ State lives on disk. Long searches survive a crash, a reboot, and a compaction. 
 
 The trace is append-only JSONL. In a batch, **all goals share one `run_id`**, so a single `math_read_trace {run_id}` retrieves the whole run afterwards.
 
+### `claim-verify` — turning a claim into a function call
+
+`verify_claim` · `claim_audit` · `lean_audit` · `research_note`
+
+`verify_claim` runs a numeric script and judges the output against a **pre-declared** expectation, then freezes the claim by hash so it cannot be rewritten after the fact. This is the replacement for the deleted `check` role (failure #2): same work, seconds instead of minutes, no context, no forgetting to report.
+
+`claim_audit` answers a different and more valuable question than "was the verdict right": **was the criterion changed after it was judged?** A silently swapped criterion is more common than a wrong verdict, and no function catches it.
+
+`lean_audit` reads a Lean file, runs the kernel, and emits a verdict. The member that runs it does not get to write the ledger entry — that separation is the point.
+
+### `research-gate` — ordering, enforced
+
+`research_stage`
+
+Prior art before computation; a falsifiable criterion before numeric verification. It is one tool because it is one gate. Enforcing order as a gate, not as a reminder, is what turns "I should have checked first" into a blocked call.
+
 ### `ollama` — hints only
 
 `llm_status` · `llm_load` · `llm_unload` · `llm_suggest` · `llm_premise_hint`.
@@ -105,7 +121,13 @@ Parameters take literal values, not shell expressions. Passing `$(Get-Content ..
 
 ### `mm-toolkit`
 
-`viz_gen` · `viz_python` · `viz_tex` · `viz_matlab` · `viz_list` · `viz_see` · `viz_doctor`.
+`viz_gen` · `viz_python` · `viz_tex` · `viz_matlab` · `viz_list` · `viz_see` · `viz_doctor` — plotting and counterexample images via local Anaconda Python / MATLAB / LaTeX-TikZ.
+
+`browser` · `browser_read` · `browser_status` — persistent browser automation daemon.
+
+`cnki` — Chinese literature index.
+
+`think` — multi-session Socratic deliberation; useful when a decision needs to be argued out rather than computed.
 
 `viz_python` is an executor: whatever it prints comes back, and a run with no figure is still a success. This matters — an earlier version bound success to the existence of a PNG, so pure computation returned `ok:false`, and members concluded their work had failed and looped.
 

@@ -9,10 +9,10 @@ The plugins, extracted from a working single-machine setup. Migration is in prog
 | 1 | `lean-math` | 13 | ~2.5k | — | pending |
 | 2 | `math-strategies` | 7 | ~3.8k | lean-math | pending |
 | 3 | `proof-harness` | 4 | ~1.1k | lean-math | pending |
-| 4 | `claim-verify` | 3 | ~2.2k | — | pending |
-| 5 | `research-gate` | 2 | ~1.2k | — | pending |
+| 4 | `claim-verify` | 4 | ~2.2k | — | pending |
+| 5 | `research-gate` | 1 | ~1.2k | — | pending |
 | 6 | `paper` | 6 | ~1.7k | — | pending |
-| 7 | `mm-toolkit` | 7 | ~1.3k | — | pending |
+| 7 | `mm-toolkit` | 12 | ~1.3k | — | pending |
 | 8 | `watchdog` | 1 | ~0.9k | — | pending |
 | 9 | `wps-bridge` | 8 | ~1.2k | — | pending |
 | 10 | `hotloader` | 1 | ~0.6k | — | pending |
