@@ -1,0 +1,38 @@
+{
+  "name": "dsh-plugin-research-gate",
+  "version": "0.4.1",
+  "description": "Enforce research order: survey prior art before any computation, and allow numeric verification only after a falsifiable criterion exists.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "README.md",
+    "skills/**/*"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "research-workflow",
+    "methodology",
+    "gate"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laoda12345576/dsh-math-flow.git",
+    "directory": "packages/research-gate"
+  }
+}

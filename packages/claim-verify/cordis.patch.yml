@@ -1,0 +1,10 @@
+- insert:
+    - id: claim-verify
+      name: 'dsh-plugin-claim-verify'
+      config:
+        # Python 解释器。留空则回落到 PATH 里的 python。
+        pythonExe: 'C:\anaconda\python.exe'
+        # 单条判定的硬上限。机械判定应当是秒级，超过这个数说明它不是机械判定。
+        timeoutMs: 120000
+        # 判定产物的落盘目录，相对于工作目录。
+        stateDir: '.claim-verify'

@@ -1,0 +1,27 @@
+# dsh-plugin-research-gate bundle patch。
+#
+# 一行 insert，注册 1 个工具（research_stage）并装上一道全局门禁：
+#   survey（禁算） → synthesis（禁算） → verify（放行）
+#
+# 门禁走的是 ctx.tools.guard，而不是往提示词里加一句"请先读文献"。
+# 差别的理由是实测出来的：上一轮把"先读文献再算"写进任务，模型依然
+# 0 次调用文献工具、直接开算；提示词对这类省略行为没有约束力。
+
+- insert:
+    - id: research-gate
+      name: 'dsh-plugin-research-gate'
+      config:
+        enabled: true
+        # 进 synthesis 之前，文献类工具至少要真的被调用几次。
+        # 光写一段"前人做过什么"没有成本，模型可以凭记忆编；调用有成本。
+        minReads: 3
+        # prior_art 的最小字数。低于这个数通常只是摘要，不是理解。
+        minPriorArtChars: 400
+        # 验证计划的最小字数。
+        minPlanChars: 300
+        # 人工例外：某个工具名被误判成计算类时，放进来。
+        allowExtra: []
+        # 人工加严：某个工具虽然名字像调研，但实际在算，放进来。
+        denyExtra: []
+        # 是否往系统提示里插一段"研究纪律"。
+        injectPrompt: true

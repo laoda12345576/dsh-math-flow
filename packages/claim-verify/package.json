@@ -1,0 +1,41 @@
+{
+  "name": "dsh-plugin-claim-verify",
+  "version": "0.1.0",
+  "description": "Turn a research claim into a function call. Runs a numeric script, judges it against a pre-declared expectation in a separate process, and freezes the claim by hash so it cannot be rewritten after the fact.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.py",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "reproducibility",
+    "claim-verification",
+    "research-tooling"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laoda12345576/dsh-math-flow.git",
+    "directory": "packages/claim-verify"
+  }
+}
