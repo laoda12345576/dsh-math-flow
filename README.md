@@ -73,7 +73,7 @@ Tool-by-tool reference: [`docs/02-tool-reference.md`](docs/02-tool-reference.md)
 One command. It creates its own profile (`math-flow`) so your working profile is not touched, installs every plugin at a pinned version, and verifies what actually mounted:
 
 ```bash
-git clone <this-repo> && cd dsh-math-flow
+git clone https://github.com/laoda12345576/dsh-math-flow && cd dsh-math-flow
 node scripts/install.mjs                 # core: kernel + frozen claims + order gate
 ```
 
