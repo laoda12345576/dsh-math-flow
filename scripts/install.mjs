@@ -96,9 +96,24 @@ const PURGE = {
   role: 'patch layer, rewind, skill injection',
 };
 
+/**
+ * Shipped, but not on the default path: mm-toolkit's twelve tools include seven
+ * that need helper scripts the repo does not ship (browserd.py, the Doubao and
+ * nano-banana bridges). It is a real package, it is just not something a first
+ * install should silently pull in — the missing pieces would look like bugs.
+ */
+const OPTIONAL = [
+  {
+    pkg: 'dsh-plugin-mm-toolkit',
+    dir: 'packages/mm-toolkit',
+    id: 'mm-toolkit',
+    role: 'plotting — Python / MATLAB / TikZ executors, 12 tools',
+  },
+];
+
 const TIERS = {
   core: [...SHIPPED],
-  full: [...SHIPPED, ...THIRD_PARTY],
+  full: [...SHIPPED, ...OPTIONAL, ...THIRD_PARTY],
 };
 
 // ── Arguments ───────────────────────────────────────────────────────────────
@@ -110,8 +125,12 @@ dsh-math-flow installer
 
 Options
   --profile <name>   profile to create or update   (default: math-flow)
-  --tier core|full   core = 3 shipped plugins      (default: core)
-                     full = core + memory/team/negative-knowledge
+  --tier core|full   core = the 4 shipped plugins  (default: core)
+                     full = core + mm-toolkit + memory/team/negative-knowledge
+  --with-viz         add mm-toolkit to whatever tier is selected
+                     (7 of its 12 tools need bridge scripts you supply; it is
+                      not in core because a first install should not pull in
+                      things that cannot run yet)
   --with-purge       also install dsh-purge (git; needs a manual allowBuilds)
   --patch            force copying cordis.patch.yml (default: full tier only)
   --no-patch         never copy cordis.patch.yml into the profile
@@ -130,6 +149,7 @@ function parseArgs(argv) {
     profile: 'math-flow',
     tier: 'core',
     purge: false,
+    viz: false,
     patch: null,
     force: false,
     dryRun: false,
@@ -141,6 +161,7 @@ function parseArgs(argv) {
     if (a === '--profile') opts.profile = argv[++i];
     else if (a === '--tier') opts.tier = argv[++i];
     else if (a === '--with-purge') opts.purge = true;
+    else if (a === '--with-viz') opts.viz = true;
     else if (a === '--patch') opts.patch = true;
     else if (a === '--no-patch') opts.patch = false;
     else if (a === '--force') opts.force = true;
@@ -415,6 +436,7 @@ function main() {
   }
 
   const expected = [...TIERS[opts.tier]];
+  if (opts.viz && !expected.some((e) => e.id === 'mm-toolkit')) expected.push(...OPTIONAL);
   if (opts.purge) expected.push(PURGE);
 
   if (opts.verifyOnly) {

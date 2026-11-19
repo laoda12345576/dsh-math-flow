@@ -1,0 +1,43 @@
+{
+  "name": "dsh-plugin-mm-toolkit",
+  "version": "0.1.0",
+  "description": "Plotting a model can verify: Python/matplotlib, MATLAB and LaTeX-TikZ as three separate executors that return stdout and exit codes, plus image listing. Optional bridges (local vision client, image generation, a stateful Chrome daemon, CNKI search, Socratic deliberation) require helper scripts you supply yourself.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/smoke.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "plotting",
+    "matplotlib",
+    "matlab",
+    "tikz",
+    "latex",
+    "visualization"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laoda12345576/dsh-math-flow.git",
+    "directory": "packages/mm-toolkit"
+  }
+}

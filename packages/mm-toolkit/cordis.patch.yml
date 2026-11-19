@@ -1,0 +1,48 @@
+# dsh-plugin-mm-toolkit bundle patch.
+#
+# Mounts the math-modelling toolkit as one profile row, so every capability below
+# survives a DSH restart instead of living only in the process that defined it.
+#
+# Rows are additive; a later layer ($DSH_HOME/profiles/<profile>/cordis.patch.yml)
+# may restate the whole `config` object for the same `id` to override defaults.
+#
+# Every value below is empty on purpose. Empty means "resolve at runtime", which is
+# the only default that is correct on someone else's machine:
+#
+#   workspace   empty -> <tmpdir>/mm-toolkit, created on demand
+#   pythonExe   empty -> `python` on Windows, `python3` elsewhere
+#   matlabExe   empty -> viz_matlab answers "not configured" instead of failing
+#   xelatexExe  null  -> auto-detect (MiKTeX under %LOCALAPPDATA%, then PATH)
+#   scriptsDir  empty -> the optional bridges are reported missing, not crashed on
+#
+# No credentials in this file. The CNKI login is read from MM_CNKI_USER / MM_CNKI_PASS.
+
+- insert:
+    - id: mm-toolkit
+      name: 'dsh-plugin-mm-toolkit'
+      config:
+        # Absolute workspace root. Every scratch file, script and figure is written
+        # under <workspace>/viz_out or <workspace>/browse_out.
+        workspace: ''
+
+        # Interpreter / toolchain locations. Leave empty to resolve from PATH. Pin an
+        # absolute path only when the `python` on PATH has no matplotlib.
+        pythonExe: ''
+        matlabExe: ''
+        xelatexExe: null
+
+        # Helper scripts for the Doubao bridge, the Chrome daemon and the
+        # nano-banana bridge. These are NOT part of this package; see the README.
+        scriptsDir: ''
+
+        # Local Doubao desktop client, used as the vision model by viz_see.
+        doubaoExe: ''
+
+        # Loopback automation daemon (Playwright-driven Chrome, persistent profile).
+        daemonPort: 8731
+        daemonTitle: 'mm-toolkit browserd'
+
+        # CNKI (知网研学) login. Leave empty and export MM_CNKI_USER / MM_CNKI_PASS
+        # instead -- a password in a tracked file is a password in the repository.
+        cnkiUser: ''
+        cnkiPass: ''

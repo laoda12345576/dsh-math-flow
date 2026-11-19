@@ -4,13 +4,15 @@ Two tiers. `package.json` in each directory is **what the installer writes**, ke
 
 ```bash
 node scripts/install.mjs                  # tier=core, profile=math-flow
-node scripts/install.mjs --tier full      # + memory, team, negative knowledge
+node scripts/install.mjs --with-viz       # core + mm-toolkit (plotting)
+node scripts/install.mjs --tier full      # + plotting, memory, team, negative knowledge
 ```
 
 | Tier | Contents | Use |
 |---|---|---|
-| `core` | lean-math + claim-verify + research-gate | the minimum that produces a kernel verdict and refuses to compute before surveying. Confirm your Lean install here before blaming the pipeline. |
-| `full` | core + meow-memory + agent-teams + misakanet | memory across compaction, persistent members, negative knowledge. The pipeline proper. |
+| `core` | lean-math + claim-verify + research-gate + paper | the minimum that produces a kernel verdict, refuses to compute before surveying, and can actually go read the literature it demands. Confirm your Lean install here before blaming the pipeline. |
+| `core --with-viz` | core + mm-toolkit | plotting as an executor: Python / MATLAB / TikZ. Five of its twelve tools work on a clean install; the rest need bridge scripts it does not carry, which is why this is a switch and not part of core. |
+| `full` | core + mm-toolkit + meow-memory + agent-teams + misakanet | memory across compaction, persistent members, negative knowledge. The pipeline proper. |
 
 `profiles/full/cordis.patch.yml` is the patch layer: team policy, per-role tool allow-lists, and the watchdog decision (installed, descendants off — the comments in that file are the design). The installer copies it only for `--tier full`, because every block in it configures a bundle core does not have; applying it to core produces boot warnings about entries nobody asked for. `--patch` forces it, `--no-patch` forbids it.
 

@@ -125,9 +125,9 @@ It also exposes channel and resolution tools used by the adversarial member to l
 
 Parameters take literal values, not shell expressions. Passing `$(Get-Content ...)` into a tool argument is carrying shell habits into a tool call and fails in a way that looks like a plugin bug.
 
-### `mm-toolkit`
+### `mm-toolkit` — shipped, optional
 
-`viz_gen` · `viz_python` · `viz_tex` · `viz_matlab` · `viz_list` · `viz_see` · `viz_doctor` — plotting and counterexample images via local Anaconda Python / MATLAB / LaTeX-TikZ.
+`viz_gen` · `viz_python` · `viz_tex` · `viz_matlab` · `viz_list` · `viz_see` · `viz_doctor` — plotting and counterexample images via local Python / MATLAB / LaTeX-TikZ.
 
 `browser` · `browser_read` · `browser_status` — persistent browser automation daemon.
 
@@ -136,6 +136,15 @@ Parameters take literal values, not shell expressions. Passing `$(Get-Content ..
 `think` — multi-session Socratic deliberation; useful when a decision needs to be argued out rather than computed.
 
 `viz_python` is an executor: whatever it prints comes back, and a run with no figure is still a success. This matters — an earlier version bound success to the existence of a PNG, so pure computation returned `ok:false`, and members concluded their work had failed and looped.
+
+**Five of the twelve work on a clean install** (`viz_python`, `viz_matlab`, `viz_tex`, `viz_list`, `viz_doctor`). The other seven need helper scripts that are not in this repo — a Playwright daemon, a desktop-client vision bridge, an image-generation bridge. They are not vendored because they are machine-specific, and they are not in the core tier because a first install should not pull in tools that cannot run yet. Each one checks for its bridge and says what is missing instead of failing at spawn:
+
+```json
+{ "ok": false, "missing": "nanobanana_bridge.py",
+  "error": "viz_gen 依赖外部桥脚本 ... 详见 packages/mm-toolkit/README.md「外部桥脚本」一节。" }
+```
+
+Install with `--with-viz`, or take it as part of `--tier full`.
 
 ---
 

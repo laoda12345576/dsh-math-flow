@@ -7,6 +7,7 @@
     "dsh-plugin-claim-verify": "file:<repo>/packages/claim-verify",
     "dsh-plugin-research-gate": "file:<repo>/packages/research-gate",
     "dsh-plugin-paper": "file:<repo>/packages/paper",
+    "dsh-plugin-mm-toolkit": "file:<repo>/packages/mm-toolkit",
     "meow-memory": "0.32.4",
     "@nanmicoder/dsh-agent-teams": "0.1.28",
     "misakanet": "3.5.0"
@@ -20,6 +21,7 @@
         "dsh-plugin-claim-verify",
         "dsh-plugin-research-gate",
         "dsh-plugin-paper",
+        "dsh-plugin-mm-toolkit",
         "meow-memory",
         "@nanmicoder/dsh-agent-teams",
         "misakanet"

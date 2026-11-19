@@ -1,6 +1,6 @@
 # packages
 
-The plugins, extracted from a working single-machine setup. Only the four marked **in repo** are here; the rest are still in that setup and are listed so the dependency order is documented rather than remembered.
+The plugins, extracted from a working single-machine setup. Only the five marked **in repo** are here; the rest are still in that setup and are listed so the dependency order is documented rather than remembered.
 
 ## Order and status
 
@@ -12,13 +12,15 @@ The plugins, extracted from a working single-machine setup. Only the four marked
 | 2 | `math-strategies` | 7 | ~3.8k | lean-math | not extracted |
 | 3 | `proof-harness` | 4 | ~1.1k | lean-math | not extracted |
 | 6 | `paper` | 6 | ~1.9k | — | **in repo** |
-| 7 | `mm-toolkit` | 12 | ~1.3k | MATLAB / Anaconda / a local client | not extracted — environment-coupled |
+| 7 | `mm-toolkit` | 12 | ~1.3k | MATLAB / Python / xelatex; 7 tools need bridge scripts | **in repo** — optional tier |
 | 8 | `watchdog` | 1 | ~0.9k | — | not extracted |
 | 9 | `wps-bridge` | 8 | ~1.2k | local WPS install | not extracted — platform-coupled |
 | 10 | `hotloader` | 1 | ~0.6k | — | not extracted — dev tool |
 | 11 | `ollama` | 5 | ~0.7k | local Ollama | not extracted — optional |
 
-`node scripts/install.mjs` installs exactly the four in-repo packages (plus, at `--tier full`, the three third-party ones). Anything above marked *not extracted* will fail to resolve if you add it to a manifest by hand — that is why the profile templates no longer list them.
+`node scripts/install.mjs` installs the four core packages; `--with-viz` adds `mm-toolkit`, and `--tier full` adds it together with the three third-party ones. Anything above marked *not extracted* will fail to resolve if you add it to a manifest by hand — that is why the profile templates no longer list them.
+
+`mm-toolkit` is shipped but not on the default path on purpose: five of its twelve tools work on a clean install, seven need helper scripts the repo does not carry. See its README for the matrix.
 
 Every package is MIT, ESM, no build step (`lib/index.js` is the entry), Node ≥ 22.5.
 

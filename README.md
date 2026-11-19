@@ -6,7 +6,7 @@ Most "agent stack" repos are a screenshot of a plugin list. This one ships the l
 
 Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib. — [中文](README.zh-CN.md)
 
-> **What is actually here today.** Four plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: four are in `packages/`, three are third-party packages pinned by version, and seven still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
+> **What is actually here today.** Five plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: five are in `packages/` (four on the default path, one optional), three are third-party packages pinned by version, and six still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
 
 ---
 
@@ -49,7 +49,7 @@ Eight layers, one plugin family per layer. **Two plugins in the same layer fight
 ```
 execution   agent-teams
 computation lean-math · proof-harness* · math-strategies* · ollama*
-observation watchdog* · mm-toolkit* (viz / counterexamples)
+observation watchdog* · mm-toolkit (viz / counterexamples, optional)
 memory      meow-memory            ← exactly one, never two
 negative    misakanet              ← failure lessons, not general search
 literature  paper · zotero*       ← evidence store, not generic RAG
@@ -82,11 +82,14 @@ node scripts/install.mjs                 # core: kernel + frozen claims + order 
 ```
 
 ```bash
-node scripts/install.mjs --tier full     # + memory, team, negative knowledge
+node scripts/install.mjs --with-viz      # + plotting: Python / MATLAB / TikZ, 12 tools
+node scripts/install.mjs --tier full     # + plotting, memory, team, negative knowledge
 node scripts/install.mjs --dry-run       # print the plan, change nothing
 node scripts/install.mjs --verify-only   # check an existing profile
 node scripts/doctor.mjs                  # what toolchain is missing (read-only)
 ```
+
+`--with-viz` is a separate switch rather than part of core because seven of `mm-toolkit`'s twelve tools need bridge scripts this repo does not carry. They are reported as missing, with the file name, rather than failing at spawn — see [`packages/mm-toolkit/README.md`](packages/mm-toolkit/README.md) for which five work out of the box.
 
 The installer refuses to start if `node`, `dsh`, or `pnpm` is missing, installs one package at a time so a failure leaves a resumable profile, and skips anything already at the pinned version. It ends by reading `dsh --profile <name> --dump-config` and checking each plugin's *actual component id* — not the package name, because `misakanet@3.5.0` mounts as `misakanet-mcp` and a verifier that assumes otherwise reports a healthy install as broken.
 
@@ -100,7 +103,7 @@ What the last step prints at the core tier (measured, not illustrative):
   profile math-flow: 156 components, 0 of 4 expected plugins missing
 ```
 
-`--tier full` adds three more lines: `agent-teams`, `meow-memory`, `misakanet-mcp`.
+`--with-viz` adds `mm-toolkit`; `--tier full` adds it plus `agent-teams`, `meow-memory`, `misakanet-mcp`.
 
 Then:
 
@@ -129,8 +132,9 @@ Three kinds of thing end up in a working pipeline, and they come from three diff
 | Layer | Where it comes from | Status |
 |---|---|---|
 | kernel (`lean-math`), evidence (`claim-verify`), ordering (`research-gate`), literature (`paper`) | `packages/` in this repo | shipped |
+| plotting (`mm-toolkit`) | `packages/`, `--with-viz` | shipped, optional — 5 of its 12 tools run without bridge scripts |
 | memory, execution, negative knowledge | third-party npm packages, **declared not vendored** | pinned in [`docs/05-dependencies.md`](docs/05-dependencies.md) |
-| plotting, watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
+| watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
 
 That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination.
 
@@ -139,7 +143,7 @@ Per-plugin notes — what it refuses to do, not just what it does — live in ea
 ## Repository layout
 
 ```
-packages/     4 shipped plugins; the other 7 are listed, not present
+packages/     5 shipped plugins; the other 6 are listed, not present
 profiles/     core + full manifests, and the patch layer that encodes team policy
 scripts/      install.mjs (one command) and doctor.mjs (read-only toolchain report)
 docs/         01 architecture · 02 tool reference · 03 failure log · 04 measurement · 05 dependencies
@@ -187,7 +191,7 @@ Every run records: turns, tool calls, duplicate calls, compactions, human interv
 
 ## Status
 
-Alpha. Four plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`, `paper`); the other seven are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
+Alpha. Five plugins are in `packages/` and installable today — `lean-math`, `claim-verify`, `research-gate`, `paper`, and optionally `mm-toolkit`; the other six are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
 
 Contributions that add a *measurement* are more welcome than contributions that add a plugin.
 
