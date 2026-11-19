@@ -1,2 +1,2 @@
-﻿run_id,group,task,turns,tool_calls,dup_calls,compactions,human_interventions,recovered_within_turns,verdict,note
+run_id,group,task,turns,tool_calls,dup_calls,compactions,human_interventions,recovered_within_turns,verdict,note
 lab-00000000-X0,A,EXAMPLE-DELETE-THIS-ROW,0,0,0,0,0,0,inconclusive,format reference only: group in A/B/C; run_id lab-YYYYMMDD-<arm><n>

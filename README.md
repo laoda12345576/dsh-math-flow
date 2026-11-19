@@ -4,7 +4,9 @@
 
 Most "agent stack" repos are a screenshot of a plugin list. This one ships the list, the configuration, the plugins, and — the part that matters — **the experiment protocol that tells you whether any of it worked.**
 
-Built on [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`), Lean 4, and Mathlib.
+Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib.
+
+> **What is actually here today.** Three plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: three are in `packages/`, three are third-party packages pinned by version, and eight still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
 
 ---
 
@@ -16,7 +18,7 @@ This pipeline exists to keep four things alive across a session:
 
 | What decays | Who is responsible here |
 |---|---|
-| Symbol definitions | `lean-math` (kernel decides) + a symbol table on disk |
+| Symbol definitions | `lean-math` — the kernel refuses a proof about the wrong object. Beyond that it is a convention you keep by hand: there is no symbol-table plugin, and the original design assumed one |
 | Negative results ("this path is dead") | `misakanet` — lessons from failures, not search |
 | Task ownership across compaction | `agent-teams` — persistent members, DAG, mailbox |
 | Everything, when the context is compacted | `meow-memory` — re-injects after compaction |
@@ -45,15 +47,17 @@ The original failure was maintaining four independent, each-plausible, each-unch
 Eight layers, one plugin family per layer. **Two plugins in the same layer fight** — memory especially, where every candidate competes for the same system-prompt injection slot.
 
 ```
-execution   agent-teams · goal/todo · subagents
-computation lean-math · proof-harness · math-strategies · ollama
-observation watchdog · mm-toolkit (viz / counterexamples)
+execution   agent-teams
+computation lean-math · proof-harness* · math-strategies* · ollama*
+observation watchdog* · mm-toolkit* (viz / counterexamples)
 memory      meow-memory            ← exactly one, never two
 negative    misakanet              ← failure lessons, not general search
-literature  paper · zotero         ← evidence store, not generic RAG
-output      wps-bridge             ← the only path to .docx/.xlsx/.pptx
-ops         hotloader · market · purge · web
+literature  paper* · zotero        ← evidence store, not generic RAG
+output      wps-bridge*            ← the only path to .docx/.xlsx/.pptx
+ops         hotloader* · market · purge · web
 ```
+
+`*` — designed, running on the author's machine, **not in this repo yet**. [`packages/README.md`](packages/README.md) lists them in dependency order with what each one is waiting on. The layout is documented rather than trimmed because a layer diagram with holes is more useful than a smaller diagram that lies about the shape.
 
 Data flow for one task, and the one ordering constraint that is not negotiable:
 
@@ -86,6 +90,8 @@ node scripts/doctor.mjs                  # what toolchain is missing (read-only)
 
 The installer refuses to start if `node`, `dsh`, or `pnpm` is missing, installs one package at a time so a failure leaves a resumable profile, and skips anything already at the pinned version. It ends by reading `dsh --profile <name> --dump-config` and checking each plugin's *actual component id* — not the package name, because `misakanet@3.5.0` mounts as `misakanet-mcp` and a verifier that assumes otherwise reports a healthy install as broken.
 
+What the last step prints at `--tier full` (core stops after `research-gate`):
+
 ```
   ok   lean-math  (dsh-plugin-lean-math)
   ok   claim-verify  (dsh-plugin-claim-verify)
@@ -99,20 +105,46 @@ Then:
 dsh --profile math-flow        # boot it
 ```
 
-Requirements: Node ≥ 22.5, `dsh`, `pnpm`, and `git`. Lean 4 + Lake on `PATH` and a Mathlib checkout are needed for `import Mathlib` proofs — the plugins mount without them and every verdict comes back as an error, which is the honest failure mode. `node scripts/doctor.mjs` lists exactly what is missing and the command that fixes it; it deliberately does not install a 4 GB Mathlib for you.
+## Requirements
 
-Per-plugin notes live in each `packages/*/README.md`. Optional pieces (`wps-bridge`, `jammers-sim`, `ollama`) are platform- or hardware-specific and can be skipped without breaking the math path.
+| Need | How | Note |
+|---|---|---|
+| Node ≥ 22.5 | any install | the plugins are ESM with `engines` set |
+| `dsh` | `npm i -g @deepseek-ai/dsh` | **verified on 0.1.5-rc.2.** npm `latest` is 0.2.2-rc.5 and has not been tested against these pins |
+| `pnpm` | `npm i -g pnpm` | `dsh plugin` forwards to it |
+| Lean 4 + Lake | `elan default leanprover/lean4:stable` | the kernel; without it verdicts return errors, not false passes |
+| Mathlib | `git clone`, then `lake exe cache get` | needed for `import Mathlib`; ~4 GB |
+
+Only Lean and Mathlib are optional, and only in the sense that the pipeline installs without them: the plugins mount, and every verdict then returns an error instead of a false pass. `node scripts/doctor.mjs` reports which are missing and the command that fixes each; it deliberately does not install Mathlib for you, because that is a disk decision, not a prerequisite.
+
+If the mount check reports `MISS` on a newer host, that is version skew rather than a broken plugin — see failure #7 in [`docs/03-failure-log.md`](docs/03-failure-log.md).
 
 ## What is in this repo, and what you install separately
 
-Only the plugins built here live in `packages/`. Three layers of the pipeline are third-party packages — memory, team execution, and negative knowledge — and they are **declared, not vendored**:
+Three kinds of thing end up in a working pipeline, and they come from three different places. Conflating them is why most "agent stack" repos cannot be reproduced:
 
-| Layer | Where it comes from |
-|---|---|
-| memory, execution, negative knowledge | third-party npm packages, versions pinned in `docs/05-dependencies.md` |
-| computation, evidence, ordering, literature | `packages/` in this repo |
+| Layer | Where it comes from | Status |
+|---|---|---|
+| kernel (`lean-math`), evidence (`claim-verify`), ordering (`research-gate`) | `packages/` in this repo | shipped |
+| memory, execution, negative knowledge | third-party npm packages, **declared not vendored** | pinned in [`docs/05-dependencies.md`](docs/05-dependencies.md) |
+| literature, plotting, watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
 
-That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination, and [`docs/05-dependencies.md`](docs/05-dependencies.md) is the part most people skip.
+That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination.
+
+Per-plugin notes — what it refuses to do, not just what it does — live in each `packages/*/README.md`.
+
+## Repository layout
+
+```
+packages/     3 shipped plugins; the other 8 are listed, not present
+profiles/     core + full manifests, and the patch layer that encodes team policy
+scripts/      install.mjs (one command) and doctor.mjs (read-only toolchain report)
+docs/         01 architecture · 02 tool reference · 03 failure log · 04 measurement · 05 dependencies
+lab/          the measurement protocol and metrics.csv schema — no fabricated numbers
+patches/      host-specific patches, quarantined with their target version
+```
+
+If you read only two files, read [`docs/03-failure-log.md`](docs/03-failure-log.md) and [`docs/04-measurement.md`](docs/04-measurement.md). The first is ten post-mortems — three of them became the design rules above, the other seven are why the configuration looks the way it does. The second is how you would check whether any of this works. The plugins are the least interesting part: they are replaceable, and the log is not.
 
 ---
 
@@ -152,7 +184,7 @@ Every run records: turns, tool calls, duplicate calls, compactions, human interv
 
 ## Status
 
-Alpha. Three plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`); the other five are listed in [`packages/README.md`](packages/README.md) with their dependency order and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified; host patches that depend on a specific `dsh` build are quarantined in `patches/` with their target version stated.
+Alpha. Three plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`); the other eight are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
 
 Contributions that add a *measurement* are more welcome than contributions that add a plugin.
 
