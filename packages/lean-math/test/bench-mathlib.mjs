@@ -35,7 +35,7 @@ await apply(
     effect: (f) => f(),
     logger: { info() {}, warn() {}, error() {} },
   },
-  { projectDir: 'D:\\Ai for Math\\mathlib4', interactiveTimeoutMs: 900000, defaultTimeoutMs: 900000 }
+  { projectDir: process.env.MATHLIB_DIR, interactiveTimeoutMs: 900000, defaultTimeoutMs: 900000 }
 )
 const call = async (n, a) => {
   const t = Date.now()

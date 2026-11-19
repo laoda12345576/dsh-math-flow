@@ -53,9 +53,9 @@ const ctx = {
 
 const budgetMs = Number(process.argv[2] || 60000)
 await apply(ctx, {
-  projectDir: 'D:\\Ai for Math\\mathlib4',
-  defaultProjectDir: 'D:\\Ai for Math\\mathlib4',
-  lean: { projectDir: 'D:\\Ai for Math\\mathlib4', verifyTimeoutMs: budgetMs },
+  projectDir: process.env.MATHLIB_DIR,
+  defaultProjectDir: process.env.MATHLIB_DIR,
+  lean: { projectDir: process.env.MATHLIB_DIR, verifyTimeoutMs: budgetMs },
   interactiveTimeoutMs: budgetMs
 })
 

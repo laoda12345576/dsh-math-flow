@@ -53,6 +53,6 @@ console.log('\nexplicit names -> any_sorry:', r2.any_sorry, '| declarations:', r
 // Mathlib case
 const r3 = await call('lean_axioms', {
   code: 'import Mathlib.Tactic\n\ntheorem t (n : Nat) : n < n + 1 := by omega',
-  project_dir: 'D:\\Ai for Math\\mathlib4'
+  project_dir: process.env.MATHLIB_DIR
 })
 console.log('\nMathlib -> ok:', r3.ok, '| any_sorry:', r3.any_sorry, '|', JSON.stringify(r3.declarations))

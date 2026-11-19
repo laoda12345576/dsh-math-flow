@@ -4,7 +4,10 @@ import { writeFileSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
 import { apply } from '../lib/index.js'
 
-const WORKSPACE = 'D:\\Ai for Math'
+// Scratch directory for the interactive session. Override with MATHLIB_WORKSPACE
+// if your Mathlib checkout lives somewhere specific; the test only needs a
+// writable path it can drop a .lean file into.
+const WORKSPACE = process.env.MATHLIB_WORKSPACE || process.env.TEMP || '/tmp'
 
 const subprocess = {
   async resolveExecutable(bin) {
@@ -40,7 +43,7 @@ await apply(
     tools: { register: (d) => (registered.set(d.name, d), () => {}) },
     effect: () => () => {}
   },
-  { projectDir: 'D:\\Ai for Math\\mathlib4', defaultTimeoutMs: 600000 }
+  { projectDir: process.env.MATHLIB_DIR, defaultTimeoutMs: 600000 }
 )
 
 const call = (n, a) => registered.get(n).execute(a, {})

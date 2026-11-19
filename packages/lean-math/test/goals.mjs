@@ -29,7 +29,7 @@ await apply(
   },
   // 600000, not 120000: loading `import Mathlib.Tactic` measures 80-150s on this
   // machine, and a budget smaller than that times out mid-load and looks like a bug.
-  { projectDir: 'D:\\Ai for Math\\mathlib4', interactiveTimeoutMs: 600000 }
+  { projectDir: process.env.MATHLIB_DIR, interactiveTimeoutMs: 600000 }
 )
 const call = (n, a) => reg.get(n).execute(a, {})
 

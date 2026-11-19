@@ -11,7 +11,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { inspectCode, claimHash, apply, surpriseOf, SCHEMA_VERSION } from '../lib/index.js'
 
-const PY = process.env.CLAIM_VERIFY_PY || 'C:\\anaconda\\python.exe'
+const PY = process.env.CLAIM_VERIFY_PY || 'python'
 const TMP = path.join(os.tmpdir(), `claim-verify-${Date.now()}`)
 
 /** Minimal host stand-in: the plugin only needs tools.register / effect / logger. */

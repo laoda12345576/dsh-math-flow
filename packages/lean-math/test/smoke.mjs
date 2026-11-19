@@ -31,7 +31,7 @@ const ctx = {
   }
 }
 
-await apply(ctx, { projectDir: 'D:\\Ai for Math\\mathlib4', defaultTimeoutMs: 120000 })
+await apply(ctx, { projectDir: process.env.MATHLIB_DIR, defaultTimeoutMs: 120000 })
 
 console.log('registered    =', registered.length, 'tools')
 for (const tool of registered) {

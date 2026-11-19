@@ -27,7 +27,7 @@ await apply(
     tools: { register: (d) => (reg.set(d.name, d), () => {}) },
     effect: () => () => {}
   },
-  { projectDir: 'D:\\Ai for Math\\mathlib4', defaultTimeoutMs: 300000 }
+  { projectDir: process.env.MATHLIB_DIR, defaultTimeoutMs: 300000 }
 )
 const call = (n, a) => reg.get(n).execute(a, {})
 

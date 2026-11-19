@@ -2,9 +2,9 @@
  * 解析宿主自己的 defineTool。
  *
  * 为什么不能直接 `import '@deepseek-ai/dsh-tools'`：插件以符号链接方式挂在
- * `$DSH_HOME/profiles/<name>/node_modules/` 下，真实路径在 D:\tools\...，
- * Node 的模块解析从真实路径出发，找不到 profile 里的依赖。所以要按 specifier
- * 和 profile 绝对路径两条路依次试。
+ * `$DSH_HOME/profiles/<name>/node_modules/` 下，而真实路径在别处（你自己的
+ * 源码目录），Node 的模块解析从真实路径出发，找不到 profile 里的依赖。所以要
+ * 按 specifier 和 profile 绝对路径两条路依次试。
  *
  * @module dsh-plugin-research-gate/toolkit
  */
@@ -41,8 +41,8 @@ export async function resolveDefineTool() {
     }
   }
   throw new Error(
-    'dsh-plugin-research-gate: 找不到 defineTool。请把插件装进某个 DSH profile：' +
-      '`dsh plugin --profile <name> add D:\\tools\\dsh-plugin-research-gate`'
+    'claim-verify: 找不到 defineTool。请把插件装进某个 DSH profile：' +
+      '`dsh plugin --profile <name> add <path-to-this-package>`'
   )
 }
 

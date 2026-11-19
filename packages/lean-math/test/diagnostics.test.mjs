@@ -60,7 +60,7 @@ const ctx = {
   effect: () => () => {}
 }
 
-const project = 'D:\\Ai for Math\\mathlib4'
+const project = process.env.MATHLIB_DIR
 await apply(ctx, {
   projectDir: project,
   defaultProjectDir: project,

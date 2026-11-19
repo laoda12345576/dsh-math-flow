@@ -28,7 +28,7 @@ await apply(
     tools: { register: (d) => (registered.set(d.name, d), () => {}) },
     effect: () => () => {}
   },
-  { projectDir: 'D:\\Ai for Math\\mathlib4', defaultTimeoutMs: 600000, interactiveTimeoutMs: 300000 }
+  { projectDir: process.env.MATHLIB_DIR, defaultTimeoutMs: 600000, interactiveTimeoutMs: 300000 }
 )
 const call = (n, a) => registered.get(n).execute(a, {})
 
@@ -62,7 +62,7 @@ await apply(
     tools: { register: (d) => (reg2.set(d.name, d), () => {}) },
     effect: () => () => {}
   },
-  { projectDir: 'D:\\Ai for Math\\mathlib4', interactiveTimeoutMs: 3000 }
+  { projectDir: process.env.MATHLIB_DIR, interactiveTimeoutMs: 3000 }
 )
 const call2 = (n, a) => reg2.get(n).execute(a, {})
 const o3 = await call2('lean_open_file', {

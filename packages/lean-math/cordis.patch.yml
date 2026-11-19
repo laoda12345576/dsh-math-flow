@@ -16,7 +16,7 @@
       config:
         # Absolute path of the Mathlib lake project used when a tool call omits
         # `project_dir`. Empty string = no default (caller must pass one).
-        projectDir: 'D:\Ai for Math\mathlib4'
+        projectDir: ''
 
         # Wall-clock budget for one `lean` run. ENFORCED: on expiry the child is
         # aborted, force-terminated, and — if it still never settles — abandoned,
