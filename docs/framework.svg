@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="712" viewBox="0 0 960 712" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Source Han Sans SC, sans-serif">
+  <rect width="960" height="712" fill="#ffffff"/>
+
+  <!-- 研究者 -->
+  <rect x="366" y="16" width="228" height="46" rx="9" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="480" y="36" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">研究者 / 一个问题</text>
+  <text x="480" y="52" text-anchor="middle" font-size="10.5" fill="#6b7280">提问 · 定方向 · 最后读结论</text>
+  <line x1="480" y1="62" x2="480" y2="88" stroke="#9ca3af" stroke-width="1.2"/>
+  <path d="M480 94 L475 85 L485 85 Z" fill="#9ca3af"/>
+
+  <!-- 会话容器 -->
+  <rect x="44" y="94" width="872" height="360" rx="14" fill="#fcfcfd" stroke="#d1d5db"/>
+  <text x="68" y="118" font-size="11.5" fill="#6b7280">dsh 会话（模型只在这个框里工作）</text>
+
+  <!-- ① 顺序层 -->
+  <text x="68" y="146" font-size="13.5" font-weight="700" fill="#1d4ed8">① 顺序层</text>
+  <text x="68" y="164" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1d4ed8">research-gate</text>
+  <text x="68" y="181" font-size="10.5" fill="#6b7280">顺序不对就拒绝</text>
+
+  <rect x="246" y="132" width="172" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="332" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#1e3a8a">survey</text>
+  <text x="332" y="174" text-anchor="middle" font-size="10.5" fill="#3b82f6">只读文献，不许算</text>
+
+  <rect x="442" y="132" width="172" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="528" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#1e3a8a">synthesis</text>
+  <text x="528" y="174" text-anchor="middle" font-size="10.5" fill="#3b82f6">写一条可判真假的判据</text>
+
+  <rect x="638" y="132" width="172" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="724" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#1e3a8a">verify</text>
+  <text x="724" y="174" text-anchor="middle" font-size="10.5" fill="#3b82f6">才允许取证与下结论</text>
+
+  <line x1="418" y1="160" x2="436" y2="160" stroke="#93c5fd" stroke-width="1.4"/>
+  <path d="M442 160 L433 155 L433 165 Z" fill="#93c5fd"/>
+  <line x1="614" y1="160" x2="632" y2="160" stroke="#93c5fd" stroke-width="1.4"/>
+  <path d="M638 160 L629 155 L629 165 Z" fill="#93c5fd"/>
+
+  <text x="246" y="206" font-size="10.5" fill="#9a3412">跳步 · 引文对不上原文 · 判据写不成表 → 调用直接失败</text>
+
+  <!-- ② 判定层 -->
+  <text x="68" y="258" font-size="13.5" font-weight="700" fill="#047857">② 判定层</text>
+  <text x="68" y="276" font-size="10.5" fill="#6b7280">谁有权说「成立」</text>
+  <text x="68" y="292" font-size="10.5" fill="#6b7280">函数，不是 agent</text>
+
+  <rect x="246" y="244" width="178" height="66" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="335" y="266" text-anchor="middle" font-size="12.5" font-weight="600" fill="#065f46" font-family="ui-monospace, Consolas, monospace">paper</text>
+  <text x="335" y="284" text-anchor="middle" font-size="10.5" fill="#047857">文献真伪与全文</text>
+  <text x="335" y="300" text-anchor="middle" font-size="9.5" fill="#6b7280">verified / probable / not_found</text>
+
+  <rect x="438" y="244" width="178" height="66" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="527" y="266" text-anchor="middle" font-size="12.5" font-weight="600" fill="#065f46" font-family="ui-monospace, Consolas, monospace">claim-verify</text>
+  <text x="527" y="284" text-anchor="middle" font-size="10.5" fill="#047857">断言先冻结，独立进程判</text>
+  <text x="527" y="300" text-anchor="middle" font-size="9.5" fill="#6b7280">judge.py · claim_hash</text>
+
+  <rect x="630" y="244" width="180" height="66" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="720" y="266" text-anchor="middle" font-size="12.5" font-weight="600" fill="#065f46" font-family="ui-monospace, Consolas, monospace">lean-math</text>
+  <text x="720" y="284" text-anchor="middle" font-size="10.5" fill="#047857">内核判过才算证完</text>
+  <text x="720" y="300" text-anchor="middle" font-size="9.5" fill="#6b7280">公理 ⊆ 三条标准公理</text>
+
+  <!-- ③ 执行层 -->
+  <text x="68" y="348" font-size="13.5" font-weight="700" fill="#b45309">③ 执行层</text>
+  <text x="68" y="366" font-size="10.5" fill="#6b7280">干活与查资料</text>
+  <text x="68" y="382" font-size="10.5" fill="#6b7280">不做判定</text>
+
+  <rect x="246" y="330" width="136" height="62" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="314" y="352" text-anchor="middle" font-size="11.5" font-weight="600" fill="#92400e" font-family="ui-monospace, Consolas, monospace">mm-toolkit</text>
+  <text x="314" y="370" text-anchor="middle" font-size="10" fill="#b45309">计算 / 画图 / 反例</text>
+
+  <rect x="392" y="330" width="136" height="62" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="460" y="352" text-anchor="middle" font-size="11.5" font-weight="600" fill="#92400e" font-family="ui-monospace, Consolas, monospace">agent-teams</text>
+  <text x="460" y="370" text-anchor="middle" font-size="10" fill="#b45309">文献官 / 计算官 / 复核官</text>
+
+  <rect x="538" y="330" width="130" height="62" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="603" y="352" text-anchor="middle" font-size="11.5" font-weight="600" fill="#92400e" font-family="ui-monospace, Consolas, monospace">meow-memory</text>
+  <text x="603" y="370" text-anchor="middle" font-size="10" fill="#b45309">压缩后重新注入</text>
+
+  <rect x="678" y="330" width="132" height="62" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="744" y="352" text-anchor="middle" font-size="11.5" font-weight="600" fill="#92400e" font-family="ui-monospace, Consolas, monospace">misakanet</text>
+  <text x="744" y="370" text-anchor="middle" font-size="10" fill="#b45309">否定知识</text>
+
+  <text x="246" y="416" font-size="10.5" fill="#6b7280">证据级计算必须派给子智能体：主会话只留结论，不留几万行日志</text>
+  <text x="246" y="434" font-size="10" fill="#9ca3af">后三个是第三方包，按版本锁定、不打包；mm-toolkit 十二项里有七项需要自备桥脚本</text>
+
+  <line x1="480" y1="454" x2="480" y2="484" stroke="#9ca3af" stroke-width="1.2"/>
+  <path d="M480 490 L475 481 L485 481 Z" fill="#9ca3af"/>
+  <text x="492" y="476" font-size="10.5" fill="#6b7280">每一轮都落盘</text>
+
+  <!-- 运行目录 -->
+  <rect x="44" y="496" width="872" height="50" rx="9" fill="#f9fafb" stroke="#d1d5db"/>
+  <text x="64" y="526" font-size="10.5" fill="#6b7280">runs/</text>
+  <text x="112" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">goal.md</text>
+  <text x="186" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">refs/*.txt</text>
+  <text x="270" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">claims.jsonl</text>
+  <text x="376" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">state.json</text>
+  <text x="462" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">notes.jsonl</text>
+  <text x="556" y="526" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">report.md</text>
+  <text x="650" y="526" font-size="10" fill="#9ca3af">← 下一轮从这里接手，不从记忆里接手</text>
+
+  <line x1="480" y1="546" x2="480" y2="564" stroke="#9ca3af" stroke-width="1.2"/>
+  <path d="M480 570 L475 561 L485 561 Z" fill="#9ca3af"/>
+
+  <!-- ④ 说明层 -->
+  <rect x="44" y="576" width="872" height="92" rx="9" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="66" y="605" font-size="13.5" font-weight="700" fill="#334155">④ 说明层</text>
+  <text x="66" y="627" font-size="11.5" fill="#334155">research-protocol · 731 行 SKILL.md</text>
+  <text x="66" y="647" font-size="10.5" fill="#6b7280">写清每一步必须留下什么，以及这条规矩是从哪次翻车来的</text>
+
+  <line x1="512" y1="590" x2="512" y2="656" stroke="#e2e8f0"/>
+
+  <text x="536" y="605" font-size="11.5" fill="#334155">8 个对账脚本</text>
+  <text x="536" y="625" font-size="10" fill="#6b7280" font-family="ui-monospace, Consolas, monospace">research-state · terminate-check · run-audit</text>
+  <text x="536" y="641" font-size="10" fill="#6b7280" font-family="ui-monospace, Consolas, monospace">domain-audit · handoff · team-metrics · read-any · clock-stamp</text>
+  <text x="536" y="657" font-size="10" fill="#6b7280">只读地指出「记录对不上」，不拦人</text>
+
+  <text x="480" y="696" text-anchor="middle" font-size="10.5" fill="#6b7280">四个层里只有 research-gate 会真的拒绝执行；skill 与脚本只让「没做」变得可见。</text>
+</svg>

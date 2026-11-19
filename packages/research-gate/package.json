@@ -12,9 +12,11 @@
   "files": [
     "lib/**/*.js",
     "cordis.patch.yml",
-    "README.md",
-    "skills/**/*"
+    "README.md"
   ],
+  "scripts": {
+    "test": "node test/smoke.mjs"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

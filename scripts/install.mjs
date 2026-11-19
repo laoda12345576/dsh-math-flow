@@ -472,8 +472,16 @@ function verifySkills(opts) {
 function verify(name, expected, { quiet = false } = {}) {
   const r = run('dsh', ['--profile', name, '--dump-config'], { capture: true });
   if (r.code !== 0) {
-    say('verification failed: --dump-config did not run');
-    if (r.err) say(r.err.split('\n').slice(0, 4).join('\n'));
+    const err = r.err ?? '';
+    if (/does not exist/.test(err)) {
+      say(`  profile ${name} does not exist, so there is nothing to verify.`);
+      say(`  create it first:  node scripts/install.mjs --profile ${name}`);
+    } else if (/ENOENT|not recognized|command not found/i.test(err)) {
+      say('verification failed: `dsh` is not on PATH.');
+    } else {
+      say('verification failed: --dump-config did not run');
+      if (err) say(err.split('\n').slice(0, 4).join('\n'));
+    }
     return 4;
   }
   const ids = new Set([...r.out.matchAll(/^-\s+id:\s*(\S+)/gm)].map((m) => m[1]));
