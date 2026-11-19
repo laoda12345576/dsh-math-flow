@@ -1,0 +1,151 @@
+# Patch layer, applied after every bundle layer.
+#
+# This file is the actual design. The parts that look like comments are the
+# parts that took the most work to learn; they are kept in place on purpose.
+
+- insert:
+    - id: dsh-purge
+      name: dsh-purge
+      inject: [systemPrompt, tools]
+      config:
+        enabled: true
+        stripMnemon: true
+        capabilityProtocol: true
+        hooksDenyBypass: true
+
+# ── Team policy: split by decidability, not by resource ──────────────────────
+#
+# v1 split members by resource (literature member has no compute, compute
+# member has no literature). It constrained what members could *use* and left
+# unconstrained whether what they returned was *correct*.
+#
+# v2 split by decidability, correctly, but also turned "checking" into an agent
+# position. Measured twice: the check role produced zero verdicts. Not because
+# it was weak — because "run a script and compare numbers" as an agent takes
+# five steps (read context → understand → write script → execute → report), and
+# any step can break. As a function it takes a few hundred milliseconds.
+#
+# v3 axis:
+#   mechanically decidable      → verify_claim (a tool, not a member)
+#   needs candidates / entropy  → draft
+#   needs "is this criterion worth checking / vacuously true / refutable" → refute
+#   genuinely undecidable (taste, direction) → nobody. The captain carries it.
+#
+# Why only two agent roles: judgment is not about how fast you check, it is
+# about whether you are checking the thing that should be checked. A batch that
+# verified a tautology passed 46 times and carried zero information. No function
+# catches that; only an adversarial member does.
+- id: agent-teams
+  config:
+    stateDir: .agent-teams
+    memberProvider: spawn
+    toolPolicies:
+      # High-entropy generation. Allowed to be wrong; not allowed to be sparse.
+      # Deliberately no paper_search / zotero: the shared literature base is
+      # frozen once by the captain into ground.md, and members read that. Every
+      # member re-running the same survey is forking the model per task.
+      # paper_verify / paper_resolve stay: it may check, it may not roam.
+      draft:
+        allow:
+          - read
+          - write
+          - edit
+          - glob
+          - grep
+          - pwsh
+          - viz_python
+          - job_list
+          - job_output
+          - job_kill
+          - skill
+          - paper_verify
+          - paper_resolve
+          - research_stage
+          # Self-test before handoff: confirms the candidate's data can actually
+          # be judged. This is not self-certification — it checks format and
+          # rule match; the verdict is still the captain's.
+          - verify_claim
+          - think
+
+      # The `check` role was removed. Not because it performed badly, but
+      # because this is not work for an agent: it is a function call wearing
+      # five steps. Replaced by verify_claim (seconds, reproducible, no context,
+      # cannot forget to report). The judgment it should have made — "is this
+      # criterion a cheap substitute?" — moved to `refute` below, which is the
+      # only position that produces new information.
+
+      # Formalization: one job — translate a statement into Lean and make it
+      # compile. Separate member because (a) it is a different craft: reading
+      # Mathlib lemma names, coercions, fighting `simp`; (b) more importantly,
+      # the proposer may not be the certifier. Self-certification is the
+      # cheapest form of cheating available to a machine.
+      # Deliberately no math_generate_strategies / math_solve_direct: its task
+      # is to translate what someone else said, not to invent a conclusion and
+      # then prove it. Also no claim_audit: that belongs to refute. It can run
+      # lean_audit, but the verdict is not its to write.
+      formal:
+        allow:
+          - read
+          - write
+          - edit
+          - glob
+          - grep
+          - pwsh
+          - skill
+          - paper_search
+          - paper_fetch
+          - paper_resolve
+          - lean_audit
+          - verify_claim
+          - think
+
+      # Adversary. Opposite objective, and a different information source
+      # (it can look for known counterexamples in the literature; draft cannot).
+      # Independence comes from that difference, not from a different persona.
+      # Personas are free, which is exactly why they are worthless here.
+      refute:
+        allow:
+          - read
+          - write
+          - glob
+          - grep
+          - pwsh
+          - viz_python
+          - skill
+          - paper_search
+          - paper_fetch
+          - paper_resolve
+          - paper_verify
+          - paper_channels
+          - cnki
+          - research_stage
+          # It may recompute counterexamples, and it may audit the ledger for
+          # criteria that were changed *after* being judged. The second is the
+          # more valuable check: a silently swapped criterion is more common
+          # than a wrong verdict.
+          - verify_claim
+          - claim_audit
+          - think
+
+# ── Watchdog: installed, descendants off ─────────────────────────────────────
+#
+# Disabled not because it is useless but because it was self-harming:
+# `trackDescendants: true` pulled every descendant of the host into the watch
+# set, including the shell it spawns on each sample and that shell's console
+# host. Those idle after their query, so zero CPU growth is their normal state,
+# so three samples later they were declared stalled:
+#
+#   [watchdog] <shell>.exe PID 25052 stalled 143s (CPU +0ms, disk +0KB/sample)
+#
+# Two such snapshots landed inside a 258-second reasoning gap; the captain spent
+# that gap investigating a fault that did not exist. Noise is not free.
+#
+# To re-enable: set trackDescendants to false, or exclude the sampling shell
+# from descendantsOf, then uncomment the block below. `watchNames` (real
+# lean/lake hangs) is the part that was worth having.
+- id: watchdog
+  disabled: true
+
+- id: meow-memory
+  config:
+    promptLang: 'zh'

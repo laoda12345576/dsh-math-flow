@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnp.*
+package-lock.json.bak*
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# local state
+.agent-teams/
+.dsh-*
+*.log
+*.bak
+*.bak-*
+*~
+
+# secrets and machine-specific
+.env
+.env.*
+*.pem
+*.key
+.credentials*
+
+# runtime traces often contain absolute paths and session content
+data/*.jsonl
+**/trace*.jsonl
+**/*-trace.jsonl
+
+# keep the measurement records
+!lab/**/*.csv
+!lab/**/*.md
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

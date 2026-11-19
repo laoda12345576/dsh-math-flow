@@ -1,0 +1,54 @@
+{
+  "name": "dsh-profile-math-flow",
+  "private": true,
+  "description": "Full pipeline profile. Package paths are relative to this file; run from the repo root.",
+  "dependencies": {
+    "@nanmicoder/dsh-agent-teams": "0.1.28",
+    "meow-memory": "0.32.4",
+    "misakanet": "3.5.0",
+    "dsh-zotero": "^0.9.0",
+    "dshmarket": "^1.47.0",
+    "dsh-purge": "github:YuJunZhiXue/dsh-purge",
+    "dsh-web": "git+https://github.com/zhu1090093659/dsh-web-ui.git",
+    "@linxin666/dsh-remote-web-ui": "^0.3.23",
+
+    "dsh-plugin-lean-math": "file:../../packages/lean-math",
+    "dsh-plugin-math-strategies": "file:../../packages/math-strategies",
+    "dsh-plugin-proof-harness": "file:../../packages/proof-harness",
+    "dsh-plugin-claim-verify": "file:../../packages/claim-verify",
+    "dsh-plugin-research-gate": "file:../../packages/research-gate",
+    "dsh-plugin-paper": "file:../../packages/paper",
+    "dsh-plugin-mm-toolkit": "file:../../packages/mm-toolkit",
+    "dsh-plugin-watchdog": "file:../../packages/watchdog",
+    "dsh-plugin-wps-bridge": "file:../../packages/wps-bridge",
+    "dsh-plugin-hotloader": "file:../../packages/hotloader",
+    "dsh-plugin-ollama": "file:../../packages/ollama"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-plugin-lean-math",
+        "dsh-plugin-claim-verify",
+        "dsh-plugin-math-strategies",
+        "dsh-plugin-proof-harness",
+        "dsh-plugin-research-gate",
+        "dsh-plugin-paper",
+        "dsh-plugin-mm-toolkit",
+        "dsh-plugin-watchdog",
+        "dsh-plugin-wps-bridge",
+        "dsh-plugin-hotloader",
+        "dsh-plugin-ollama",
+        "dsh-zotero",
+        "meow-memory",
+        "@nanmicoder/dsh-agent-teams",
+        "misakanet",
+        "dsh-purge",
+        "dshmarket",
+        "@linxin666/dsh-remote-web-ui",
+        "dsh-web"
+      ]
+    }
+  }
+}
