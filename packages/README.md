@@ -8,7 +8,7 @@ The plugins, extracted from a working single-machine setup. Only the three marke
 |---|---|---|---|---|---|
 | 1 | `lean-math` | 13 | ~2.5k | — | **in repo** |
 | 4 | `claim-verify` | 4 | ~2.2k | — | **in repo** |
-| 5 | `research-gate` | 1 | ~1.2k | — | **in repo** |
+| 5 | `research-gate` | 1 | ~1.2k | — (reads `paper_*` if present) | **in repo** |
 | 2 | `math-strategies` | 7 | ~3.8k | lean-math | not extracted |
 | 3 | `proof-harness` | 4 | ~1.1k | lean-math | not extracted |
 | 6 | `paper` | 6 | ~1.7k | — | not extracted |

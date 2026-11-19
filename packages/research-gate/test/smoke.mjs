@@ -157,6 +157,25 @@ ok(/草稿级/.test(msg) && /任何阶段都放行/.test(msg), '拒绝文案说�
 ok(/在区间上做循环/.test(msg), '拒绝文案给出了本次的分级理由')
 ok(/委派子智能体/.test(msg), '拒绝文案预告了 verify 之后也要委派，别抱幻想')
 
+// 只推荐真正挂载了的工具：paper 是另一个插件，可能没装。
+// 提示里点名一个不存在的工具，模型调完拿到"工具不存在"，会以为门禁坏了。
+const noPaper = denialReason(st, 'viz_python', { minReads: 3 }, '', ['viz_python', 'web_search', 'read_file'])
+ok(!/paper_search/.test(noPaper), '没装 paper 时，拒绝文案不再点名 paper_search')
+ok(/web 检索/.test(noPaper) && /refs/.test(noPaper), '没装 paper 时仍给出真实的替代路径')
+const withPaper = denialReason(st, 'viz_python', { minReads: 3 }, '', [
+  'viz_python',
+  'paper_search',
+  'paper_fetch',
+])
+ok(/paper_search/.test(withPaper) && /paper_fetch/.test(withPaper), '装了 paper 时照常点名')
+ok(!/paper_resolve/.test(withPaper), '只点名实际可见的那几个，不按全集抄')
+const unknown = denialReason(st, 'viz_python', { minReads: 3 }, '', null)
+ok(/paper_search/.test(unknown), '拿不到工具视图时按全集写（未知不等于没有）')
+
+const advNoPaper = advance(createState('问题B'), 'synthesis', { priorArt: 'x'.repeat(500) }, { minReads: 3 }, [])
+ok(!/paper_search/.test(advNoPaper.reason), 'advance 的拒绝理由同样不再点名没装的 paper')
+ok(/refs/.test(advNoPaper.reason), 'advance 的拒绝理由仍给出可走的路')
+
 console.log('\n--- 委派说明（v0.3 的核心） ---')
 const vst = { ...createState('问题A'), stage: 'verify', priorArt: 'x'.repeat(500), plan: 'y'.repeat(400) }
 const dm = delegationReason(vst, 'viz_python', { tier: 'evidence', why: '在区间上做循环' })

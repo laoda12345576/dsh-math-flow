@@ -128,6 +128,25 @@ function findDelegationTools(tools, agent, extra = []) {
   }
 }
 
+/**
+ * 当前 agent 能看到的工具名。给 denialReason 用来**只推荐真的装了的工具**。
+ *
+ * 返回 null 而不是空数组：拿不到视图时，提示应该按全集写，而不是说"一个都没有"。
+ *
+ * @param {object} tools - tools 服务。
+ * @param {object} agent - 当前 agent。
+ * @returns {string[]|null} 工具名，或 null（未知）。
+ */
+function visibleToolNames(tools, agent) {
+  try {
+    const visible = tools.view?.(agent)?.visible
+    if (visible === undefined || visible === null) return null
+    return [...visible.keys()]
+  } catch {
+    return null
+  }
+}
+
 /** 给模型的固定规则段。它不能替代 guard，但能让模型少撞几次墙。 */
 const PROMPT_TEXT = [
   '研究纪律（research-gate 门禁，强制执行）：',
@@ -255,7 +274,7 @@ export async function apply(ctx, config = {}) {
       if (st.stage !== 'verify') {
         st.denials += 1
         const label = sneaky === null ? toolName : `${toolName}（${sneaky}）`
-        return denialReason(st, label, opt, tier.why)
+        return denialReason(st, label, opt, tier.why, visibleToolNames(tools, agent))
       }
 
       // 判据有了，但活不该由主智能体干。
@@ -349,7 +368,7 @@ export async function apply(ctx, config = {}) {
                 note: r.note,
               }
             }
-            const r = advance(st, String(args?.to || ''), { priorArt: args?.prior_art, plan: args?.plan }, opt)
+            const r = advance(st, String(args?.to || ''), { priorArt: args?.prior_art, plan: args?.plan }, opt, visibleToolNames(tools, agent))
             if (!r.ok) return { ok: false, reason: r.reason, stage: st.stage, summary: statusLine(st, opt) }
             STATES.set(stateKey(agent), r.state)
             return {

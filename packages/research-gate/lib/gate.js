@@ -494,7 +494,7 @@ export function checkCitations(text, refsDir) {
   return out
 }
 
-export function advance(state, to, payload = {}, config = {}) {
+export function advance(state, to, payload = {}, config = {}, available = null) {
   const minReads = Number.isFinite(config.minReads) ? config.minReads : 3
   const minPriorArt = Number.isFinite(config.minPriorArtChars) ? config.minPriorArtChars : 400
   const minPlan = Number.isFinite(config.minPlanChars) ? config.minPlanChars : 300
@@ -541,7 +541,7 @@ export function advance(state, to, payload = {}, config = {}) {
         ok: false,
         reason:
           `文献类工具只调用了 ${state.reads} 次，至少要 ${minReads} 次才能进入 synthesis。` +
-          '请先用 paper_search 检索、paper_fetch 抓全文、或读 refs/ 下的 .txt，把前人做到哪一步弄清楚。',
+          `请先用 ${available === null || !Array.isArray(available) ? 'paper_search 检索、paper_fetch 抓全文、或 ' : ''}读 refs/ 下的 .txt，把前人做到哪一步弄清楚。`,
       }
     }
     if (text.length < minPriorArt) {
@@ -684,6 +684,24 @@ export function delegationTooEarly(state, tier, config = {}) {
 }
 
 /**
+ * survey 阶段可用的工具清单，按**实际挂载**渲染。
+ *
+ * 为什么不能写死：这个插件原先在拒绝理由里点名 paper_search / paper_fetch，
+ * 而 paper 是另一个插件，可能根本没装。模型照着提示去调，拿到的是"工具不存在"，
+ * 于是它会以为门禁坏了，转而去钻别的洞——一个提示里的假工具，比不给提示更坏。
+ *
+ * @param {string[]|null} available - 当前 agent 可见的工具名；null 表示未知，按全集写。
+ * @returns {string} 可直接拼进提示的一句话。
+ */
+function surveyToolsLine(available) {
+  const named = SURVEY_TOOL_NAMES.filter((t) => available === null || available.includes(t))
+  const rest = ['读 refs/ 下的 .txt', 'web 检索']
+  return [...(named.length > 0 ? [named.join(' / ')] : []), ...rest].join('、') + '。'
+}
+
+const SURVEY_TOOL_NAMES = ['paper_search', 'paper_resolve', 'paper_fetch', 'paper_verify']
+
+/**
  * 生成拒绝理由。要让模型知道**下一步该做什么**，而不只是"不行"。
  *
  * 关键是要说清"你这次为什么被判定为证据级"——否则模型会以为所有计算都被禁，
@@ -695,7 +713,7 @@ export function delegationTooEarly(state, tier, config = {}) {
  * @param {string} [why] - 分级器给出的理由。
  * @returns {string} 给模型看的原因。
  */
-export function denialReason(state, toolName, config = {}, why = '') {
+export function denialReason(state, toolName, config = {}, why = '', available = null) {
   const minReads = Number.isFinite(config.minReads) ? config.minReads : 3
   const minPriorArt = Number.isFinite(config.minPriorArtChars) ? config.minPriorArtChars : 400
   const scratchLimit = Number.isFinite(config.scratchLimit) ? config.scratchLimit : 8
@@ -715,7 +733,7 @@ export function denialReason(state, toolName, config = {}, why = '') {
       head +
       clarify +
       `\n现在只做一件事：把前人做到哪一步搞清楚。当前文献类调用 ${state.reads}/${minReads} 次。` +
-      `\n可用：paper_search / paper_resolve / paper_fetch / paper_verify、读 refs/ 下的 .txt、web 检索。` +
+      `\n可用：${surveyToolsLine(available)}` +
       `\n解锁条件：文献类调用满 ${minReads} 次，并调用 research_stage(advance, to=synthesis, prior_art=...) 提交不少于 ${minPriorArt} 字的前人经验综述（谁做过、化成了什么代数对象、什么手段、卡在哪一步）。` +
       `\n理由：数值搜索只在问题已经有明确的判据之后才有意义；在此之前它只会产出一堆"小范围内没找到"，而这对高度无界的问题没有信息量。`
     )
