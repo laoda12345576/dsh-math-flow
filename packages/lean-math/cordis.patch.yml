@@ -1,0 +1,38 @@
+# dsh-plugin-lean-math bundle patch.
+#
+# Mounts the Lean 4 proof-assistant bridge as one profile row. Every value here
+# is an explicit default: a later layer (the user's
+# $DSH_HOME/profiles/<profile>/cordis.patch.yml) may restate the whole `config`
+# object for the same `id` to override it.
+#
+# `projectDir` is the Mathlib lake project that `import Mathlib` proofs are
+# checked inside (the plugin then runs `lake env lean` there). Leave it empty to
+# always pass an explicit `project_dir` per call; pure-Lean code needs no project
+# at all.
+
+- insert:
+    - id: lean-math
+      name: 'dsh-plugin-lean-math'
+      config:
+        # Absolute path of the Mathlib lake project used when a tool call omits
+        # `project_dir`. Empty string = no default (caller must pass one).
+        projectDir: 'D:\Ai for Math\mathlib4'
+
+        # Wall-clock budget for one `lean` run. ENFORCED: on expiry the child is
+        # aborted, force-terminated, and — if it still never settles — abandoned,
+        # so one stuck run cannot hang a tool call. A healthy Mathlib load is
+        # ~30-60s, so this leaves several times that as headroom.
+        defaultTimeoutMs: 240000
+
+        # Wall-clock budget for one interactive step. Enforced. A session
+        # re-checks the whole script per step, so keep this below defaultTimeoutMs.
+        interactiveTimeoutMs: 300000
+
+        # Timeout for one theorem-search HTTP request.
+        searchTimeoutMs: 30000
+
+        # How long a resident Lean server may sit unused before it is shut down.
+        # Keeping it alive is what makes `import Mathlib` load only once per project
+        # instead of once per tactic; a Mathlib image is several GB, so it should not
+        # outlive the work by much. 0 = shut down as soon as no session uses it.
+        serverIdleMs: 600000

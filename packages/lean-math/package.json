@@ -1,0 +1,44 @@
+{
+  "name": "dsh-plugin-lean-math",
+  "version": "1.0.0",
+  "description": "Lean 4 bridge for dsh: verify proofs with the Lean kernel, inspect axioms, read goals, drive tactics, and search Mathlib premises.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./toolkit": "./lib/toolkit.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/run-all.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "lean",
+    "lean4",
+    "mathlib",
+    "theorem-proving",
+    "formal-mathematics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laoda12345576/dsh-math-flow.git",
+    "directory": "packages/lean-math"
+  }
+}
