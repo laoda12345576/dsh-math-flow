@@ -1,99 +1,82 @@
 # dsh-math-flow
 
-**An agent pipeline for mathematical research — built to be measured, not just installed.**
+**An agent workflow for mathematical research. Not a plugin count — a protocol: find out where other people stopped, turn the obstacle into a criterion that can be judged true or false, and only then allow computing.**
 
-Most "agent stack" repos are a screenshot of a plugin list. This one ships the list, the configuration, the plugins, and — the part that matters — **the experiment protocol that tells you whether any of it worked.**
+Most "agent stack" repos are a screenshot of a plugin list. This one ships a 730-line research protocol ([`skills/research-protocol/`](skills/research-protocol/SKILL.md)), five plugins whose job is to refuse, eight audit scripts, and a measurement protocol. Plugins are replaceable parts. The protocol is what survived a dozen experiment rounds going wrong.
 
-Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib. — [中文](README.zh-CN.md)
-
-> **What is actually here today.** Five plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: five are in `packages/` (four on the default path, one optional), three are third-party packages pinned by version, and six still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
+[中文](README.zh-CN.md) · Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib.
 
 ---
 
-## The problem it answers
+## What it is for
 
-Long mathematical sessions with an agent fail in a specific, repeatable way: **constraints decay.** A symbol is defined in round 5, drifts by round 40, and by round 60 the agent is proving a theorem about a different object. Nothing crashes. The output just quietly becomes about something else.
+Long mathematical sessions with an agent fail in three specific ways, and nothing ever crashes:
 
-This pipeline exists to keep four things alive across a session:
+| Failure | What it looks like | Measured |
+|---|---|---|
+| **Constraint decay** | A symbol is defined in round 5, drifts by round 40, and by round 60 the agent is proving a theorem about a different object | By round 3 the agenda said only "which `m` to take" |
+| **Compute first** | A number in ten minutes; a literature pass yields nothing in ten minutes — so everything becomes computing | "Searched to 10⁵, no solutions" submitted as progress |
+| **Self-certification** | Whoever proposes a claim also announces it is true | `theorem trivial_thing : 1 = 1` with an unrelated `assertion`: verdict P, zero axioms, every check green |
 
-| What decays | Who is responsible here |
+Three failures, three rules, and each rule has an owner:
+
+| Rule | Enforced by |
 |---|---|
-| Symbol definitions | `lean-math` — the kernel refuses a proof about the wrong object. Beyond that it is a convention you keep by hand: there is no symbol-table plugin, and the original design assumed one |
-| Negative results ("this path is dead") | `misakanet` — lessons from failures, not search |
-| Task ownership across compaction | `agent-teams` — persistent members, DAG, mailbox |
-| Everything, when the context is compacted | `meow-memory` — re-injects after compaction |
+| Anything mechanically decidable becomes a function, not an agent | `claim-verify` (`verify_claim`) · `lean-math` (`lean_audit`) |
+| Whoever proposes a claim may not certify it | `research-gate`'s three-role tool whitelist: `draft` cannot reach `lean_audit` |
+| One description is authoritative; the rest are generated | `claim-verify` freezes the assertion text by hash; one changed character is a different claim |
 
-A plugin list is not a pipeline. **The order and the prohibitions are the pipeline.** See [`docs/01-architecture.md`](docs/01-architecture.md).
-
----
-
-## Three design rules
-
-These are not slogans; each one is the residue of a design that failed first. The full post-mortems are in [`docs/03-failure-log.md`](docs/03-failure-log.md).
-
-**1. Anything mechanically decidable becomes a function, not an agent.**
-A `check` role that ran scripts took 103 seconds and returned zero verdicts — it died on step 3 of a five-step loop (read context → understand → write script → execute → report). The same check as a tool call takes 300 ms and cannot forget to report. Agents are for judgment, not for comparison.
-
-**2. Whoever proposes a claim may not be the one who certifies it.**
-The formalization member is deliberately a separate member with a deliberately restricted toolset: it can translate a statement into Lean and compile it, but it cannot generate the strategy, and it cannot audit the claim. Self-certification is the cheapest form of cheating available to a machine.
-
-**3. One description is authoritative; the others are generated from it.**
-The original failure was maintaining four independent, each-plausible, each-unchecked descriptions of the same mathematics (prose report / Lean / scripts / status table). The fix is not four linters. The fix is demoting three of them.
-
----
-
-## Architecture
-
-Eight layers, one plugin family per layer. **Two plugins in the same layer fight** — memory especially, where every candidate competes for the same system-prompt injection slot.
+## The protocol: three steps, one order
 
 ```
-execution   agent-teams
-computation lean-math · proof-harness* · math-strategies* · ollama*
-observation watchdog* · mm-toolkit (viz / counterexamples, optional)
-memory      meow-memory            ← exactly one, never two
-negative    misakanet              ← failure lessons, not general search
-literature  paper · zotero*       ← evidence store, not generic RAG
-output      wps-bridge*            ← the only path to .docx/.xlsx/.pptx
-ops         hotloader* · market · purge · web
+survey ──→ synthesis ──→ verify
+read only     write criteria   compute
 ```
 
-`*` — designed, running on the author's machine, **not in this repo yet**. [`packages/README.md`](packages/README.md) lists them in dependency order with what each one is waiting on. The layout is documented rather than trimmed because a layer diagram with holes is more useful than a smaller diagram that lies about the shape.
+Each step must leave something the next round can pick up — not a summary:
 
-Data flow for one task, and the one ordering constraint that is not negotiable:
+| Step | Must leave behind | If it does not |
+|---|---|---|
+| **survey** | Four answers: who did it (down to the paper) · what they reduced it to (which algebraic object the geometry became) · by what method · **where it stopped** | The gate will not advance |
+| | ≥2 **verbatim** quotes from different local files, as `[refs/x.txt] "a sentence from the text"` | Each quote is substring-matched against the file; paraphrase, splicing, or translation does not count |
+| **synthesis** | One criterion that reads directly as `judge` + `predicate` + `value`, plus "what result would refute this" | A criterion that cannot become a table row is a wish, and cannot be handed out |
+| **verify** | `prediction` and `confidence` written *before* the run; a `claim_hash` on every claim afterwards | surprise ≈ 0 across a round means the round notarised what it already knew |
 
-```
-memory re-inject → lean_status → (on failure) misakanet_search
-   → strategies → kernel verdict → visualization → document
-```
+Four more are in the protocol: computation is graded three ways (scratch / evidence / explore — only the last two wait for verify); a verdict has three outcomes and **"no conclusion" must exist**, or "no counterexample found" gets written as "holds"; numbers are never a proof (`forall` + `search` is rejected at call time); every statement in a report is tagged `[literature]` `[computed]` `[scratch]` `[guess]`.
 
-**Kernel first, prose second.** Reversing this produces a document that describes an unverified result — which is the single most common failure mode of agent-assisted mathematics.
+## Who enforces, who only reminds
 
-Tool-by-tool reference: [`docs/02-tool-reference.md`](docs/02-tool-reference.md).
+The most easily blurred line in this design, so it is stated:
 
----
+| | What it is | What it can do | What it cannot |
+|---|---|---|---|
+| **skill** | a `SKILL.md`, loaded when the task matches | say what each step must produce, and why | enforce anything. Unloaded means absent |
+| **audit scripts** (`skills/research-protocol/tools/`) | read-only over `goal.md` / `state.json` / `claims.jsonl` | judge whether a round's own records hold together | stop anyone. You have to run them |
+| **plugin** | a component mounted into the host | actually refuse — the tool call returns a failure | judge anything but the mechanical part |
 
-## Quick start
+`research-gate` is the only thing that blocks. When it refuses it has to name what is missing, and it renders that message from the tools **actually visible in the current session** — it does not name tools that are not installed (that was a bug, fixed; see [`docs/03-failure-log.md`](docs/03-failure-log.md)).
 
-One command. It creates its own profile (`math-flow`) so your working profile is not touched, installs every plugin at a pinned version, and verifies what actually mounted:
+## Install
+
+One command. It creates its own profile (yours is untouched), installs each package, and then **installs the skills** — a plugin cannot do that, which is why the installer has a second step:
 
 ```bash
 git clone https://github.com/laoda12345576/dsh-math-flow && cd dsh-math-flow
-node scripts/install.mjs                 # core: kernel + frozen claims + order gate + literature
+node scripts/install.mjs                 # core: kernel + frozen claims + order gate + literature + 3 skills
 ```
 
 ```bash
-node scripts/install.mjs --with-viz      # + plotting: Python / MATLAB / TikZ, 12 tools
-node scripts/install.mjs --tier full     # + plotting, memory, team, negative knowledge
+node scripts/install.mjs --with-viz      # + plotting: Python / MATLAB / TikZ
+node scripts/install.mjs --tier full     # + plotting, memory, team, negative knowledge (third-party)
+node scripts/install.mjs --with-purge    # + dsh-purge (the patch layer extends it; git-hosted, needs allowBuilds)
+node scripts/install.mjs --no-skills     # plugins only
+node scripts/install.mjs --skills-dir <dir>   # install skills elsewhere
 node scripts/install.mjs --dry-run       # print the plan, change nothing
-node scripts/install.mjs --verify-only   # check an existing profile
+node scripts/install.mjs --verify-only   # check an existing install
 node scripts/doctor.mjs                  # what toolchain is missing (read-only)
 ```
 
-`--with-viz` is a separate switch rather than part of core because seven of `mm-toolkit`'s twelve tools need bridge scripts this repo does not carry. They are reported as missing, with the file name, rather than failing at spawn — see [`packages/mm-toolkit/README.md`](packages/mm-toolkit/README.md) for which five work out of the box.
-
-The installer refuses to start if `node`, `dsh`, or `pnpm` is missing, installs one package at a time so a failure leaves a resumable profile, and skips anything already at the pinned version. It ends by reading `dsh --profile <name> --dump-config` and checking each plugin's *actual component id* — not the package name, because `misakanet@3.5.0` mounts as `misakanet-mcp` and a verifier that assumes otherwise reports a healthy install as broken.
-
-What the last step prints at the core tier (measured, not illustrative):
+Measured output at the core tier — not illustrative:
 
 ```
   ok   lean-math  (dsh-plugin-lean-math)
@@ -101,15 +84,14 @@ What the last step prints at the core tier (measured, not illustrative):
   ok   research-gate  (dsh-plugin-research-gate)
   ok   paper  (dsh-plugin-paper)
   profile math-flow: 156 components, 0 of 4 expected plugins missing
+
+  ok   skill research-protocol
+  ok   skill cordis-plugin-development
+  ok   skill editing-cordis-compositions
+  skills: 3 of 3 present in <DSH_HOME>/skills
 ```
 
-`--with-viz` adds `mm-toolkit`; `--tier full` adds it plus `agent-teams`, `meow-memory`, `misakanet-mcp`.
-
-Then:
-
-```bash
-dsh --profile math-flow        # boot it
-```
+The check reads `dsh --profile <name> --dump-config` and compares each plugin's **actual component id**, not its package name: `misakanet@3.5.0` mounts as `misakanet-mcp`, and a verifier that assumes otherwise reports a healthy install as broken.
 
 ## Requirements
 
@@ -121,77 +103,48 @@ dsh --profile math-flow        # boot it
 | Lean 4 + Lake | `elan default leanprover/lean4:stable` | the kernel; without it verdicts return errors, not false passes |
 | Mathlib | `git clone`, then `lake exe cache get` | needed for `import Mathlib`; ~4 GB |
 
-Only Lean and Mathlib are optional, and only in the sense that the pipeline installs without them: the plugins mount, and every verdict then returns an error instead of a false pass. `node scripts/doctor.mjs` reports which are missing and the command that fixes each; it deliberately does not install Mathlib for you, because that is a disk decision, not a prerequisite.
+Only Lean and Mathlib are optional, and "optional" means the pipeline installs without them: the plugins mount, and every verdict then returns an error instead of a false pass. `node scripts/doctor.mjs` reports which are missing and the command that fixes each; it deliberately does not install Mathlib for you, because that is a disk decision, not a prerequisite.
 
-If the mount check reports `MISS` on a newer host, that is version skew rather than a broken plugin — see failure #7 in [`docs/03-failure-log.md`](docs/03-failure-log.md).
+## What is in the repo
 
-## What is in this repo, and what you install separately
-
-Three kinds of thing end up in a working pipeline, and they come from three different places. Conflating them is why most "agent stack" repos cannot be reproduced:
-
-| Layer | Where it comes from | Status |
+| | Count | Where |
 |---|---|---|
-| kernel (`lean-math`), evidence (`claim-verify`), ordering (`research-gate`), literature (`paper`) | `packages/` in this repo | shipped |
-| plotting (`mm-toolkit`) | `packages/`, `--with-viz` | shipped, optional — 5 of its 12 tools run without bridge scripts |
-| memory, execution, negative knowledge | third-party npm packages, **declared not vendored** | pinned in [`docs/05-dependencies.md`](docs/05-dependencies.md) |
-| watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
+| Plugins: `lean-math` (kernel verdicts, 13 tools) · `claim-verify` (frozen claims, 4) · `research-gate` (order gate, 1) · `paper` (literature, 6) | 4 | [`packages/`](packages/) |
+| Optional plugin: `mm-toolkit` (plotting / counterexamples, 12 tools, 5 work on a clean install) | 1 | [`packages/mm-toolkit`](packages/mm-toolkit) |
+| Skills: `research-protocol` (the protocol itself) · `cordis-plugin-development` · `editing-cordis-compositions` | 3 | [`skills/`](skills/README.md) |
+| Audit scripts: goal/state reconciliation, stop test, report audit, domain audit, handoff, team metrics, encoding-safe read, clock anchor | 8 | [`skills/research-protocol/tools/`](skills/research-protocol/tools/) |
+| Third-party **packages**: `meow-memory` (memory) · `dsh-agent-teams` (teams) · `misakanet` (negative knowledge) | 3 | pinned, not vendored — [`docs/05-dependencies.md`](docs/05-dependencies.md) |
+| Third-party **skills**: `paper-writing` · `math-beamer` · `loogle-search` · `rigorous-paper-reviewer` · `lean-probe` | 5 | other people's; declared, not vendored — [`skills/README.md`](skills/README.md) |
 
-That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination.
+**Six more sit in the author's single-machine setup and are not here**: `watchdog`, `wps-bridge`, `hotloader`, `ollama`, `math-strategies`, `proof-harness`. [`packages/README.md`](packages/README.md) lists them with what each is waiting on. They are absent because they are not de-identified yet, depend on a specific host build, or measured out as worthless — not because they were forgotten.
 
-Per-plugin notes — what it refuses to do, not just what it does — live in each `packages/*/README.md`.
-
-## Repository layout
-
-```
-packages/     5 shipped plugins; the other 6 are listed, not present
-profiles/     core + full manifests, and the patch layer that encodes team policy
-scripts/      install.mjs (one command) and doctor.mjs (read-only toolchain report)
-docs/         01 architecture · 02 tool reference · 03 failure log · 04 measurement · 05 dependencies
-lab/          the measurement protocol and metrics.csv schema — no fabricated numbers
-patches/      host-specific patches, quarantined with their target version
-```
-
-If you read only two files, read [`docs/03-failure-log.md`](docs/03-failure-log.md) and [`docs/04-measurement.md`](docs/04-measurement.md). The first is ten post-mortems — three of them became the design rules above, the other seven are why the configuration looks the way it does. The second is how you would check whether any of this works. The plugins are the least interesting part: they are replaceable, and the log is not.
-
----
+Install only what is in `packages/` and you get a kernel and a gate: no memory, no team, no failure log. The pipeline is the combination above.
 
 ## How it is measured
 
-This is the part that is usually missing. `lab/` contains the protocol, not a benchmark score.
-
-Four questions that have answers:
+`lab/` contains the protocol, not a benchmark score. Four questions that have answers:
 
 1. **Memory effectiveness** — same 3-day task, memory on/off: how many turns to reach a workable state on a cold start?
 2. **Duplicate-call rate** — share of identical tool+argument calls in a long session (baseline observed: 26%).
 3. **Constraint survival** — in a 60-turn session, do 5 sampled symbols still mean at round 50 what they meant at round 5?
 4. **Negative-knowledge reuse** — the same error appears twice: how many turns to find the existing lesson, versus debugging from scratch?
 
-Minimum viable design: three arms, same person, same task, same starting state.
-
-| Arm | Configuration | Isolates |
-|---|---|---|
-| A | base + web app only | no memory, no collaboration, no negative knowledge |
-| B | A + memory | memory's contribution alone |
-| C | full pipeline | the whole thing |
-
-Every run records: turns, tool calls, duplicate calls, compactions, human interventions, reproducibility. One row per run in `lab/metrics.csv`.
+Minimum viable design: three arms (baseline / + memory / full pipeline), same person, same task, same starting state, one row per run in [`lab/metrics.csv`](lab/metrics.csv).
 
 **Do not run an experiment and write its conclusion in the same session.** After compaction the reviewer inherits the same wrong premises. This is failure #5 in the log, and it happened.
-
----
 
 ## What this does not do
 
 - It does not make a weak model prove hard theorems. The kernel is a judge, not a generator.
-- It does not remove the need to read. `paper` fetches and verifies citations; it does not understand them for you.
-- It is not portable to every host version. The pins are in `profiles/full/package.json`; version skew is the top source of breakage.
+- It does not remove the need to read. `paper` fetches and verifies citations; `survey` insists on verbatim quotes precisely to stop "I know" from passing as "I read".
+- It is not portable to every host version. Version skew is the top source of breakage.
 - It has no benchmark score to advertise. The measurement protocol is the honest substitute.
-
----
 
 ## Status
 
-Alpha. Five plugins are in `packages/` and installable today — `lean-math`, `claim-verify`, `research-gate`, `paper`, and optionally `mm-toolkit`; the other six are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
+Alpha. Plugins, skills and scripts are all installable today; third-party packages are pinned; the six single-machine plugins are listed, not shipped. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
+
+If you read only two files, read [`skills/research-protocol/SKILL.md`](skills/research-protocol/SKILL.md) — the protocol, and the only document here written *from* the experiments rather than about them — and [`docs/03-failure-log.md`](docs/03-failure-log.md), ten post-mortems, three of which became the rules above.
 
 Contributions that add a *measurement* are more welcome than contributions that add a plugin.
 

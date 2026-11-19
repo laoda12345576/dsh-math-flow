@@ -1,5 +1,10 @@
 # Architecture
 
+> This file says where the plugins sit. It is not the pipeline: the pipeline is the order in
+> [`../skills/research-protocol/SKILL.md`](../skills/research-protocol/SKILL.md), and of the layers
+> below exactly one (`research-gate`) can refuse a turn. If you have not read the protocol, read it first —
+> a layer diagram with no order is a parts catalogue.
+
 ## 1. Why layers at all
 
 A flat plugin list gives you no way to answer "can I add this one?" Layers exist to make that question decidable: **a plugin belongs to exactly one layer, and a layer holds exactly one plugin.**

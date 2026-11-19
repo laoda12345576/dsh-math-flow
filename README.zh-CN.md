@@ -1,99 +1,82 @@
 # dsh-math-flow
 
-**一条做数学研究的 agent 流水线 —— 它的目标是能被测量，而不是能被安装。**
+**一条做数学研究的 agent 工作流。核心不是插件数量，是那份协议：先把前人的天花板摸清楚，把障碍化成一条可判真假的判据，然后才允许开算。**
 
-大多数「agent 栈」仓库其实就是一张插件列表的截图。这个仓库给的是列表、配置、插件，以及真正重要的那部分：**一套能回答「这些到底有没有用」的实验协议。**
+大多数「agent 栈」仓库发的是一张插件列表的截图。这里发的是：一份 730 行的研究协议（[`skills/research-protocol/`](skills/research-protocol/SKILL.md)）、五个负责拒绝的插件、八个对账脚本、一套测量协议。插件是可以换的零件，协议不是——它是十几轮实验里每次翻车之后剩下的东西。
 
 [English](README.md) · 依靠 DeepSeek Harness（`dsh`）、Lean 4 和 Mathlib。
-
-> **今天仓库里实际有什么。** 五个插件、一个安装器、一套测量协议。下面的架构是八层，共点名十四个插件：五个在 `packages/` 里（四个在主路径上，一个可选），三个是按版本锁定的第三方包，其余六个仍留在作者的单机环境里——清单和原因都写在 [`packages/README.md`](packages/README.md)。这个仓库不装作它们都在，因为一份点名了不存在的包的清单，比一个诚实的缺口更糟。
 
 ---
 
 ## 它要解决的问题
 
-用 agent 做长时间的数学会以一种固定方式失败：**约束会衰减。** 一个符号在第 5 轮定义，第 40 轮开始漂移，第 60 轮 agent 已经在证关于另一个对象的定理。全程没有任何东西崩溃，输出只是悄悄地变成了别的东西。
+用 agent 做长时间的数学，会以三种固定方式坏掉，而且全程不报错：
 
-这条流水线存在的目的，就是在一个会话里让四样东西活着：
+| 坏法 | 长什么样 | 实测 |
+|---|---|---|
+| **约束衰减** | 一个符号第 5 轮定义，第 40 轮开始漂移，第 60 轮在证关于另一个对象的定理 | 第 3 轮时，议程上只剩「`m` 取到哪」 |
+| **立刻开算** | 十分钟能跑出一个数字，读文献十分钟什么都产不出——于是所有人都在算 | 「搜到 10⁵ 没有解」被当成进展交上去 |
+| **自证** | 提出断言的人，顺手宣布它成立 | 一句 `theorem trivial_thing : 1 = 1`，`assertion` 写着完全无关的定理，判 P、零公理、全部检查通过 |
 
-| 会衰减的东西 | 这里由谁负责 |
+三条病对应三条规矩，每条规矩都有人负责执行：
+
+| 规矩 | 谁执行 |
 |---|---|
-| 符号定义 | `lean-math` —— 内核会拒绝一个关于错误对象的证明。除此之外靠人工约定：**没有符号表插件**，最初的设计以为会有 |
-| 否定结果（「这条路死了」） | `misakanet` —— 从失败里取教训，不是做检索 |
-| 压缩之后的任务归属 | `agent-teams` —— 常驻成员、依赖 DAG、信箱 |
-| 一切，在上下文被压缩时 | `meow-memory` —— 压缩后重新注入 |
+| 凡是能机械判定的，做成函数，不做成 agent | `claim-verify`（`verify_claim`）· `lean-math`（`lean_audit`） |
+| 提出断言的人，不能签发断言 | `research-gate` 的三角色工具白名单：`draft` 够不到 `lean_audit` |
+| 一份描述有权威性，其余从它生成 | `claim-verify` 用 hash 冻结断言原文；改一个字就是另一条判据 |
 
-插件列表不是流水线。**顺序和禁令才是流水线。** 详见 [`docs/01-architecture.md`](docs/01-architecture.md)。
-
----
-
-## 三条设计规则
-
-这不是口号，每一条都是先失败过一次之后剩下的东西。完整的复盘在 [`docs/03-failure-log.md`](docs/03-failure-log.md)。
-
-**一、凡是能被机械判定的，就做成函数，不要做成 agent。**
-一个叫 `check` 的角色去跑脚本，活了 103 秒，返回零条判定——它死在五步循环的第三步（读上下文 → 理解 → 写脚本 → 执行 → 报告）。同一个检查做成工具调用是 300 毫秒，而且不会忘记报告。agent 用来做判断，不用来做比对。
-
-**二、提出断言的人，不能同时是签发断言的人。**
-形式化成员被刻意做成另一个成员，工具集也被刻意收窄：它能把命题翻成 Lean 并编译，但它不能生成策略，也不能审计断言。自我认证是机器能拿到的最便宜的作弊方式。
-
-**三、一份描述有权威性，其余的都是从它生成的。**
-最初的失败是同时维护四份互相独立、各自看起来都合理、且都没人核对过的同一份数学（散文报告 / Lean / 脚本 / 状态表）。解法不是上四个 linter，解法是把其中三份降级。
-
----
-
-## 架构
-
-八层，一层一个插件家族。**同一层里放两个插件会打架**——尤其是记忆，每个候选都在抢同一个系统提示注入位。
+## 协议：三步，顺序不可换
 
 ```
-执行    agent-teams
-计算    lean-math · proof-harness* · math-strategies* · ollama*
-观察    watchdog* · mm-toolkit（绘图 / 反例，可选）
-记忆    meow-memory            ← 只能有一个，绝不放两个
-否定    misakanet              ← 失败教训，不是通用检索
-文献    paper · zotero*        ← 证据库，不是通用 RAG
-输出    wps-bridge*            ← 通往 .docx/.xlsx/.pptx 的唯一路径
-运维    hotloader* · market · purge · web
+survey ──→ synthesis ──→ verify
+只读文献      只写判据       才开算
 ```
 
-`*` —— 已设计、在作者机器上运行、**尚未进入本仓库**。[`packages/README.md`](packages/README.md) 按依赖顺序列出它们以及各自在等什么。这里选择把布局写全而不是裁剪掉，因为一张带洞的分层图，比一张更小但撒谎的图有用。
+每一步都必须留下能被下一轮接手的东西，不是一段总结：
 
-一个任务的流转，以及那条不可协商的顺序约束：
+| 步骤 | 必须留下 | 缺了会怎样 |
+|---|---|---|
+| **survey** | 四个问题的答案：谁做过（具体到篇）· 化成了什么（几何/数论问题变成了哪个代数对象）· 用了什么手段 · **卡在哪一步** | 门禁不让你进下一步 |
+| | 至少两条**原文引文**，来自不同文献，格式 `[refs/x.txt]「文中的一句话」` | 引文要在文件里子串命中；改写、拼接、翻译都不算 |
+| **synthesis** | 一条判据，能直接读成 `judge` + `predicate` + `value`；外加「什么样的结果会推翻它」 | 写不成表的判据是愿望，派不出去 |
+| **verify** | 跑之前先写 `prediction` 与 `confidence`；跑完每条断言带 `claim_hash` | 全程 surprise≈0 说明这轮只在公证已知的东西 |
 
-```
-记忆重注入 → lean_status →（失败时）misakanet_search
-   → 生成策略 → 内核判定 → 可视化 → 文档
-```
+配套的四条也都在协议里：计算分三级（草稿 / 证据 / 探索，只有后两级必须等 verify）；判定只有三种结局，**「无结论」必须存在**，否则「没找到反例」会被写成「成立」；数值结果不许直接当证明（`forall` + `search` 的组合在调用时就被拒）；报告里每条陈述标 `[文献已知]` `[我算出的]` `[scratch]` `[推测]`。
 
-**先内核，后文字。** 反过来的产物是一份描述未验证结果的文档——这是 agent 辅助数学里最常见的失败方式。
+## 谁在强制，谁只是提醒
 
-逐工具的说明：[`docs/02-tool-reference.md`](docs/02-tool-reference.md)。
+这是整套东西里最容易含混的一处，所以说清楚：
 
----
+| | 它是什么 | 它能做什么 | 它不能做什么 |
+|---|---|---|---|
+| **skill** | 一个 `SKILL.md`，模型按需加载 | 讲清每一步该产出什么，以及为什么 | 不强制任何东西。不加载就等于不存在 |
+| **对账脚本**（`skills/research-protocol/tools/`） | 只读 `goal.md` / `state.json` / `claims.jsonl` | 判「这一轮的记录自洽吗」，并把不一致指出来 | 不拦人。要自己跑，自己看结果 |
+| **插件** | 挂进宿主的组件 | 真的拒绝：工具调用直接返回失败 | 只能判机械可判的那部分 |
 
-## 快速开始
+`research-gate` 是唯一会拦住你的那个。它拒的时候必须说清缺什么——拒绝文案按当前会话里**真实可见**的工具渲染，不点名不存在的东西（这一条是修出来的，见 [`docs/03-failure-log.md`](docs/03-failure-log.md)）。
 
-一条命令。它会自建一个 profile（`math-flow`），不碰你正在用的那个；按锁定版本逐个装包；最后校验到底挂上了什么：
+## 安装
+
+一条命令。自建一个 profile（不碰你在用的那个），逐个装包，然后**把 skill 也装进去**——插件装不了 skill，所以安装器有第二步：
 
 ```bash
 git clone https://github.com/laoda12345576/dsh-math-flow && cd dsh-math-flow
-node scripts/install.mjs                 # core：内核 + 冻结断言 + 顺序门禁 + 文献
+node scripts/install.mjs                 # core：内核 + 冻结断言 + 顺序门禁 + 文献 + 三个 skill
 ```
 
 ```bash
-node scripts/install.mjs --with-viz      # 再加绘图：Python / MATLAB / TikZ，12 个工具
-node scripts/install.mjs --tier full     # 再加绘图、记忆、团队、否定知识
-node scripts/install.mjs --dry-run       # 只打印计划，不动任何东西
-node scripts/install.mjs --verify-only   # 只校验已有 profile
+node scripts/install.mjs --with-viz      # + 绘图：Python / MATLAB / TikZ
+node scripts/install.mjs --tier full     # + 绘图、记忆、团队、否定知识（第三方包）
+node scripts/install.mjs --with-purge    # + dsh-purge（patch 层依赖它；git 托管，需手动放行构建）
+node scripts/install.mjs --no-skills     # 只装插件
+node scripts/install.mjs --skills-dir <目录>   # skill 装到别处
+node scripts/install.mjs --dry-run       # 只打印计划
+node scripts/install.mjs --verify-only   # 只校验已有安装
 node scripts/doctor.mjs                  # 缺哪个工具链（只读）
 ```
 
-`--with-viz` 单独开关、不放进 core，是因为 `mm-toolkit` 那 12 个工具里有 7 个需要本仓库不带的外部桥脚本。它们会按文件名报缺失，而不是在 spawn 处失败——哪 5 个开箱能用，见 [`packages/mm-toolkit/README.md`](packages/mm-toolkit/README.md)。
-
-缺 `node`、`dsh` 或 `pnpm` 时，安装器会拒绝启动；它逐个包安装，所以中途失败会留下一个可续跑的 profile；已经装到锁定版本的会跳过。最后一步读 `dsh --profile <名字> --dump-config`，核对每个插件的**实际组件 id**——不是包名，因为 `misakanet@3.5.0` 实际挂载成 `misakanet-mcp`，一个按包名匹配的校验器会把健康的安装报成坏的。
-
-core 档最后一步的输出（实测，不是示意）：
+实测输出（core 档，不是示意）：
 
 ```
   ok   lean-math  (dsh-plugin-lean-math)
@@ -101,15 +84,14 @@ core 档最后一步的输出（实测，不是示意）：
   ok   research-gate  (dsh-plugin-research-gate)
   ok   paper  (dsh-plugin-paper)
   profile math-flow: 156 components, 0 of 4 expected plugins missing
+
+  ok   skill research-protocol
+  ok   skill cordis-plugin-development
+  ok   skill editing-cordis-compositions
+  skills: 3 of 3 present in <DSH_HOME>/skills
 ```
 
-`--with-viz` 会多一行 `mm-toolkit`（157 个组件）；`--tier full` 再多三行：`agent-teams`、`meow-memory`、`misakanet-mcp`。
-
-然后：
-
-```bash
-dsh --profile math-flow        # 启动
-```
+校验读的是 `dsh --profile <名字> --dump-config`，核对每个插件的**实际组件 id**——不是包名，因为 `misakanet@3.5.0` 挂载成 `misakanet-mcp`，按包名匹配的校验器会把健康的安装报成坏的。
 
 ## 环境要求
 
@@ -121,77 +103,48 @@ dsh --profile math-flow        # 启动
 | Lean 4 + Lake | `elan default leanprover/lean4:stable` | 内核；没有它判定会返回错误，而不是假通过 |
 | Mathlib | `git clone` 后 `lake exe cache get` | `import Mathlib` 需要，约 4 GB |
 
-只有 Lean 和 Mathlib 算可选，而且「可选」的意思是流水线能装起来：插件会挂载，之后每次判定返回错误而不是假通过。`node scripts/doctor.mjs` 会报告缺哪项以及对应的修复命令；它刻意不替你装 Mathlib，因为那是一个 4 GB 的磁盘决策，不是前置条件。
+只有 Lean 和 Mathlib 算可选，而且「可选」的意思是流水线能装起来：插件会挂载，之后每次判定返回错误而不是假通过。`node scripts/doctor.mjs` 报告缺哪项以及修复命令；它刻意不替你装 Mathlib，因为那是 4 GB 的磁盘决策。
 
-如果在新版本宿主上挂载检查报 `MISS`，那是版本漂移，不是插件坏了——见失败日志第 7 条。
+## 仓库里有什么
 
-## 仓库里有什么，你需要另外装什么
-
-一条能跑的流水线里会出现三类东西，它们来自三个不同的地方。把它们混为一谈，正是大多数「agent 栈」仓库无法复现的原因：
-
-| 层 | 来自哪里 | 状态 |
+| | 数量 | 在哪 |
 |---|---|---|
-| 内核（`lean-math`）、证据（`claim-verify`）、顺序（`research-gate`）、文献（`paper`） | 本仓库 `packages/` | 已发布 |
-| 绘图（`mm-toolkit`） | 本仓库 `packages/`，`--with-viz` | 已发布，可选——12 个工具里 5 个不需要桥脚本 |
-| 记忆、执行、否定知识 | 第三方 npm 包，**只声明不打包** | 锁定在 [`docs/05-dependencies.md`](docs/05-dependencies.md) |
-| 看门狗、文档输出、运维 | 仍在作者的单机环境里 | 列在 [`packages/README.md`](packages/README.md)，暂时装不了 |
+| 插件：`lean-math`（内核判定，13 工具）· `claim-verify`（冻结断言，4）· `research-gate`（顺序门禁，1）· `paper`（文献，6） | 4 | [`packages/`](packages/) |
+| 可选插件：`mm-toolkit`（绘图 / 反例，12 工具，5 个开箱可用） | 1 | [`packages/mm-toolkit`](packages/mm-toolkit) |
+| skill：`research-protocol`（协议本体）· `cordis-plugin-development` · `editing-cordis-compositions` | 3 | [`skills/`](skills/README.md) |
+| 对账脚本：目标/状态对账、收工判定、报告审计、定义域审计、交接、团队指标、编码读取、时钟锚点 | 8 | [`skills/research-protocol/tools/`](skills/research-protocol/tools/) |
+| 第三方**包**：`meow-memory`（记忆）· `dsh-agent-teams`（团队）· `misakanet`（否定知识） | 3 | 按版本锁定、不打包，见 [`docs/05-dependencies.md`](docs/05-dependencies.md) |
+| 第三方**skill**：`paper-writing` · `math-beamer` · `loogle-search` · `rigorous-paper-reviewer` · `lean-probe` | 5 | 别人的，只声明不打包，见 [`skills/README.md`](skills/README.md) |
 
-这个区分很要紧：如果你只装 `packages/` 里的东西，你得到的是一个内核加一道门，但没有记忆、没有团队、没有失败日志。流水线是它们的组合。
+**还有一部分留在作者的单机上，没有进这个仓库**：`watchdog`、`wps-bridge`、`hotloader`、`ollama`、`math-strategies`、`proof-harness`。清单和各自缺什么写在 [`packages/README.md`](packages/README.md)。它们不在这里，是因为还没脱敏、还依赖特定宿主构建，或者实测下来没有收益——不是因为忘了。
 
-每个插件的说明——写的是它**拒绝**做什么，不只是它能做什么——在各 `packages/*/README.md` 里。
-
-## 目录结构
-
-```
-packages/     5 个已发布插件；另外 6 个只列清单，不在仓库里
-profiles/     core 和 full 两份清单，以及编码团队策略的 patch 层
-scripts/      install.mjs（一条命令）和 doctor.mjs（只读体检）
-docs/         01 架构 · 02 工具表 · 03 失败日志 · 04 测量 · 05 依赖
-lab/          测量协议与 metrics.csv 表头 —— 没有编造的数字
-patches/      依赖特定宿主的补丁，连同目标版本一起隔离
-```
-
-如果只读两个文件，读 [`docs/03-failure-log.md`](docs/03-failure-log.md) 和 [`docs/04-measurement.md`](docs/04-measurement.md)。前者是十条复盘——其中三条变成了上面的设计规则，另外七条解释了配置为什么长成这样。后者是你怎么检验这套东西到底有没有用。插件是最不重要的一部分：它们可以被替换，日志不能。
-
----
+如果你只装 `packages/` 里的东西，你得到的是一个内核加一道门：没有记忆、没有团队、没有失败日志。流水线是上面这几行的组合。
 
 ## 怎么测
 
-这是通常缺失的部分。`lab/` 放的是协议，不是跑分。
-
-四个有答案的问题：
+`lab/` 放的是协议，不是跑分。四个有答案的问题：
 
 1. **记忆有效性** —— 同一个三天任务，开/关记忆：冷启动到可工作状态要几轮？
 2. **重复调用率** —— 长会话里完全相同（工具+参数）的调用占比（实测基线：26%）。
 3. **约束存活率** —— 60 轮会话里抽 5 个符号，第 50 轮时它们还是第 5 轮的意思吗？
 4. **否定知识复用** —— 同一个错误出现第二次：找到已有教训要几轮，从零调试要几轮？
 
-最小可行设计：三条臂、同一个人、同一个任务、同一个初始状态。
-
-| 臂 | 配置 | 隔离出什么 |
-|---|---|---|
-| A | 只有 base + web app | 无记忆、无协作、无否定知识 |
-| B | A + 记忆 | 记忆单独的贡献 |
-| C | 完整流水线 | 整体 |
-
-每次运行记录：轮数、工具调用、重复调用、压缩次数、人工介入、可复现性。`lab/metrics.csv` 每行一次运行。
+最小可行设计：三条臂（基线 / +记忆 / 全流水线），同一个人、同一个任务、同一个初始状态，每次运行一行写进 [`lab/metrics.csv`](lab/metrics.csv)。
 
 **不要在同一个会话里既跑实验又写结论。** 压缩之后，复审者继承的是同一套错误前提。这是失败日志第 5 条，而且真实发生过。
-
----
 
 ## 它不做什么
 
 - 它不能让一个弱模型证出难题。内核是法官，不是生成器。
-- 它不能代替你读文献。`paper` 负责取回并核对引用，不负责替你理解。
-- 它不保证跨宿主版本可用。锁定版本在 `profiles/full/package.json` 里；版本漂移是头号故障源。
+- 它不能代替你读文献。`paper` 取回并核对引用，不替你理解；`survey` 要求引文是原文子串，就是为了挡「我知道」冒充「我读到」。
+- 它不保证跨宿主版本可用。版本漂移是头号故障源。
 - 它没有可以宣传的跑分。测量协议是诚实的替代品。
-
----
 
 ## 状态
 
-Alpha。`packages/` 里有五个插件且今天就能装——`lean-math`、`claim-verify`、`research-gate`、`paper`，以及可选的 `mm-toolkit`；另外六个按依赖顺序列在 [`packages/README.md`](packages/README.md)，写明各自在等什么，并且是刻意缺席的——一份引用了它们的清单会解析失败，那比一个诚实的缺口更糟。`profiles/` 里的配置已脱敏。依赖特定 `dsh` 构建的宿主补丁应该放在 [`patches/`](patches/README.md)，该目录当前刻意为空。
+Alpha。插件、skill、脚本三条线今天都能装；第三方包按版本锁定；单机上的六个只列清单。`profiles/` 里的配置已脱敏。依赖特定 `dsh` 构建的宿主补丁放在 [`patches/`](patches/README.md)，该目录当前刻意为空。
+
+读两个文件就够了：[`skills/research-protocol/SKILL.md`](skills/research-protocol/SKILL.md)（协议本体，也是唯一一份从实验里长出来的文档）和 [`docs/03-failure-log.md`](docs/03-failure-log.md)（十条复盘，其中三条变成了上面的规矩）。
 
 **增加一次测量的贡献，比增加一个插件的贡献更受欢迎。**
 

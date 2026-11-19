@@ -21,7 +21,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -111,6 +111,33 @@ const OPTIONAL = [
   },
 ];
 
+/**
+ * Skills are the other half of the pipeline and are installed by a different
+ * mechanism: dsh reads `<DSH_HOME>/skills/<name>/SKILL.md`, and a plugin cannot
+ * put one there. The protocol is not decoration — research-gate enforces the
+ * *order*, this skill says what each step has to produce, and the scripts under
+ * its `tools/` check that the run's own records are self-consistent. Shipping
+ * the plugin without the skill is the failure this repo keeps warning about:
+ * a gate that refuses without explaining what would have passed.
+ */
+const SKILLS = [
+  {
+    name: 'research-protocol',
+    dir: 'skills/research-protocol',
+    role: 'survey → synthesis → verify, and what each step must leave behind',
+  },
+  {
+    name: 'cordis-plugin-development',
+    dir: 'skills/cordis-plugin-development',
+    role: 'how to inspect and extend this host instead of guessing its API',
+  },
+  {
+    name: 'editing-cordis-compositions',
+    dir: 'skills/editing-cordis-compositions',
+    role: 'how a plugin row actually mounts — the composition rules',
+  },
+];
+
 const TIERS = {
   core: [...SHIPPED],
   full: [...SHIPPED, ...OPTIONAL, ...THIRD_PARTY],
@@ -134,10 +161,17 @@ Options
   --with-purge       also install dsh-purge (git; needs a manual allowBuilds)
   --patch            force copying cordis.patch.yml (default: full tier only)
   --no-patch         never copy cordis.patch.yml into the profile
+  --skills-dir <p>   where to install skills (default: <DSH_HOME>/skills)
+  --no-skills        install the plugins only, skip the three skills
   --force            reinstall even when the pinned version is already present
   --dry-run          print the plan and exit
   --verify-only      skip installing, only check the profile
   --help
+
+What it installs, in order
+  1. the plugins, into a profile of its own (your working profile is untouched)
+  2. the skills, into <DSH_HOME>/skills — a plugin cannot install these, and
+     without them the gate refuses without saying what would have passed
 
 What it does not do
   Installing Lean, Mathlib, Python, or Ollama. Those are toolchains, not
@@ -152,6 +186,8 @@ function parseArgs(argv) {
     viz: false,
     patch: null,
     force: false,
+    skills: true,
+    skillsDir: null,
     dryRun: false,
     verifyOnly: false,
     help: false,
@@ -164,6 +200,8 @@ function parseArgs(argv) {
     else if (a === '--with-viz') opts.viz = true;
     else if (a === '--patch') opts.patch = true;
     else if (a === '--no-patch') opts.patch = false;
+    else if (a === '--skills-dir') opts.skillsDir = argv[++i];
+    else if (a === '--no-skills') opts.skills = false;
     else if (a === '--force') opts.force = true;
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '--verify-only') opts.verifyOnly = true;
@@ -372,6 +410,63 @@ function applyPatch(name, opts, installedIds) {
   say(`  → cordis.patch.yml written (${targets.length} blocks)`);
 }
 
+// ── Skills ──────────────────────────────────────────────────────────────────
+
+const skillsHome = (opts) => (opts.skillsDir ? resolve(opts.skillsDir) : join(DSH_HOME, 'skills'));
+
+function listTree(root, base = root, out = []) {
+  if (!existsSync(root)) return out;
+  for (const name of readdirSync(root)) {
+    const p = join(root, name);
+    const st = statSync(p);
+    if (st.isDirectory()) listTree(p, base, out);
+    else out.push(`${p.slice(base.length + 1).replace(/\\/g, '/')}:${st.size}`);
+  }
+  return out;
+}
+
+/** File names plus sizes, both sides. Enough to skip a rewrite; not a hash. */
+function sameTree(a, b) {
+  const left = listTree(a).sort().join('|');
+  return left.length > 0 && left === listTree(b).sort().join('|');
+}
+
+function installSkills(opts) {
+  const root = skillsHome(opts);
+  say('');
+  say(opts.dryRun ? 'Skills (would install)' : 'Skills');
+  say(`  → ${root}`);
+  let failed = 0;
+  for (const s of SKILLS) {
+    const src = join(REPO, s.dir);
+    const dst = join(root, s.name);
+    if (!existsSync(join(src, 'SKILL.md'))) {
+      warn(`${s.dir} missing — run this from a clone of the repo`);
+      failed += 1;
+      continue;
+    }
+    if (!opts.force && sameTree(src, dst)) {
+      say(`  · ${s.name} already current`);
+      continue;
+    }
+    if (!opts.dryRun) {
+      mkdirSync(root, { recursive: true });
+      cpSync(src, dst, { recursive: true, force: true });
+    }
+    say(`  → ${s.name}  (${s.role})`);
+  }
+  return failed;
+}
+
+function verifySkills(opts) {
+  const root = skillsHome(opts);
+  const rows = SKILLS.map((s) => ({ name: s.name, ok: existsSync(join(root, s.name, 'SKILL.md')) }));
+  for (const r of rows) say(`  ${r.ok ? 'ok  ' : 'MISS'} skill ${r.name}`);
+  const missing = rows.filter((r) => !r.ok).length;
+  say(`  skills: ${rows.length - missing} of ${rows.length} present in ${root}`);
+  return missing === 0 ? 0 : 4;
+}
+
 // ── Verify ──────────────────────────────────────────────────────────────────
 
 function verify(name, expected, { quiet = false } = {}) {
@@ -440,7 +535,10 @@ function main() {
   if (opts.purge) expected.push(PURGE);
 
   if (opts.verifyOnly) {
-    return verify(opts.profile, expected);
+    const pluginCode = verify(opts.profile, expected);
+    say('');
+    const skillCode = opts.skills ? verifySkills(opts) : 0;
+    return pluginCode !== 0 ? pluginCode : skillCode;
   }
 
   say(`Profile ${profileDir(opts.profile)}`);
@@ -467,6 +565,9 @@ function main() {
     }
   }
 
+  let skillFailed = 0;
+  if (opts.skills) skillFailed = installSkills(opts);
+
   say('');
   say('Patch layer');
   const installedIds = new Set(
@@ -485,6 +586,10 @@ function main() {
     return 0;
   }
   const code = verify(opts.profile, expected);
+  if (opts.skills) {
+    say('');
+    verifySkills(opts);
+  }
   say('');
   if (code === 0) {
     say('Ready. Start it with:');
@@ -495,6 +600,9 @@ function main() {
   } else {
     say('Installed, but the mounted config does not contain every expected plugin.');
     say('Read the plugin output above; version skew is the usual cause (docs/03-failure-log.md #7).');
+  }
+  if (skillFailed > 0) {
+    say('Skills did not all install; the gate will still refuse, it just will not explain what would have passed.');
   }
   return code;
 }

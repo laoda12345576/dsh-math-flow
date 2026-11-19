@@ -37,6 +37,21 @@ dsh plugin --profile <your-profile> add misakanet@3.5.0
 | `dshmarket` | `^1.47.0` | ops | plugin market |
 | `dsh-web` / `@linxin666/dsh-remote-web-ui` | git / `^0.3.23` | ops | UI skins. Pure decoration; not in the task flow |
 
+## Skills are a separate axis
+
+A skill is a `SKILL.md` the host offers to the model; it is not a package, it is not installed by `dsh plugin`, and it has no version to pin. Three ship in [`../skills/`](../skills/README.md) and are copied into `<DSH_HOME>/skills/` by the installer.
+
+The ones below are **other people's** and are deliberately not bundled. They are listed because "install a skill" otherwise means "guess a URL", and because each one covers a stage this repo does not:
+
+| Skill | Stage | Why it is not here |
+|---|---|---|
+| `paper-writing`, `math-beamer` ([VeryMath/AI4Math-Writing](https://github.com/VeryMath/AI4Math-Writing)) | output | A taste layer: house style, templates, slide layouts. It ages with the venue, not with the pipeline |
+| `loogle-search` | literature | Mathlib's own type-signature index. Whatever ships next month is better than a copy made today |
+| `rigorous-paper-reviewer` ([shubham0704/claude-skills](https://github.com/shubham0704/claude-skills)) | output | Notation and consistency audit over LaTeX; independent of the kernel |
+| `lean-probe` (PyPI) | computation | An MCP probe into a Lean project. Overlaps `lean-math`, but reaches further into a project layout than this repo's bridge does |
+
+**Declare, do not vendor.** A skill copied into this repo stops tracking its upstream and starts aging silently — the same argument as the three packages above, with no version pin to fall back on. The cost is real: an upstream rename breaks the table and nothing will tell you.
+
 ## Rules that are not negotiable
 
 **One plugin per layer.** The memory layer especially: a large fraction of the ecosystem competes for the same system-prompt injection slot. Two memory plugins do not give two memories — they inject the same paragraph twice, which moves the decay point earlier rather than later.
