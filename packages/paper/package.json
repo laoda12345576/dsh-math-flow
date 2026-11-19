@@ -1,0 +1,42 @@
+{
+  "name": "dsh-plugin-paper",
+  "version": "0.1.1",
+  "description": "DeepSeek Harness plugin: legitimate academic full-text acquisition. Multi-source search (OpenAlex/Crossref/arXiv/zbMATH), open-access resolution (Unpaywall/OpenAlex locations/arXiv), three-level fetch degradation with local PDF extraction (pdftotext/pypdf), citation verification against hallucination, and a local acquisition ledger. Pirate mirrors are refused by policy, including after redirects.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./core": "./lib/core.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "test": "node test/smoke.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "paper",
+    "literature",
+    "open-access",
+    "unpaywall",
+    "arxiv",
+    "crossref",
+    "openalex",
+    "pdf"
+  ]
+}

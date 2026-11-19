@@ -6,6 +6,7 @@
     "dsh-plugin-lean-math": "file:<repo>/packages/lean-math",
     "dsh-plugin-claim-verify": "file:<repo>/packages/claim-verify",
     "dsh-plugin-research-gate": "file:<repo>/packages/research-gate",
+    "dsh-plugin-paper": "file:<repo>/packages/paper",
     "meow-memory": "0.32.4",
     "@nanmicoder/dsh-agent-teams": "0.1.28",
     "misakanet": "3.5.0"
@@ -18,6 +19,7 @@
         "dsh-plugin-lean-math",
         "dsh-plugin-claim-verify",
         "dsh-plugin-research-gate",
+        "dsh-plugin-paper",
         "meow-memory",
         "@nanmicoder/dsh-agent-teams",
         "misakanet"

@@ -1,0 +1,31 @@
+# dsh-plugin-paper bundle patch。
+#
+# 一行 insert，注册 6 个工具：paper_search / paper_resolve / paper_fetch /
+# paper_verify / paper_ledger / paper_channels。没有任何禁用项——它是纯加法，
+# 卸掉这一行就完全消失。
+#
+# 策略是"只走合法公开渠道"：盗版镜像（Sci-Hub / LibGen / Z-Library / PDFDrive 等）
+# 在入口拒绝，并且在**重定向之后**再查一次，防止合法链接跳转过去。
+
+- insert:
+    - id: paper
+      name: 'dsh-plugin-paper'
+      config:
+        # Unpaywall 要求真实邮箱；留空则跳过它，只走 OpenAlex（不要求邮箱）。
+        # 填上你自己的邮箱能多覆盖一批出版社登记过的开放版本。
+        email: ''
+        # 元数据接口（OpenAlex / Crossref / arXiv API）超时（毫秒）。
+        timeoutMs: 25000
+        # 下载正文的超时（毫秒）。实测坑：arXiv 偶尔 200 之后慢慢吐 1.8MB，
+        # 25s 会掐断；这两类请求不该共用同一个预算。
+        downloadTimeoutMs: 70000
+        # 回给模型的正文上限（字符）。全文照常落盘，这里只控制上下文占用。
+        maxChars: 12000
+        # 落盘目录。空 = <工作区>/refs（每个研究目录各自一份台账，天然隔离）。
+        saveDir: ''
+        # 是否允许"用户上传转载站"（doc88 / docin / 百度文库一类）。
+        # 默认 false：这些版本不受作者控制，常是残缺件。真要用再打开。
+        allowRepost: false
+        # 是否往系统提示里插一段"论文获取纪律"（约 300 字符/轮）。
+        # 嫌费 token 就设 false，工具照样能用。
+        injectPrompt: true

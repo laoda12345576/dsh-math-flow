@@ -107,6 +107,12 @@ Tool policies matter more than role descriptions. See `profiles/full/cordis.patc
 
 Multi-source search (OpenAlex / Crossref / arXiv / zbMATH), open-access resolution (Unpaywall, OpenAlex locations, arXiv), three-level fetch degradation with local PDF extraction, and citation verification against hallucination.
 
+`paper_search` · `paper_resolve` · `paper_fetch` · `paper_verify` · `paper_ledger` · `paper_channels`.
+
+Verdict bands for `paper_verify`: `verified` (title similarity ≥ 0.9, no year/author conflict) · `probable` (0.75–0.9, check the volume by hand or mark it as a secondary citation) · `not_found` (< 0.75 — do not write it into the text).
+
+Pirate mirrors are refused **before the connection is made**, including after a redirect, and the refusal is a policy message with an alternative rather than a network error. That detail matters: a network error invites a retry, a policy message does not.
+
 It also exposes channel and resolution tools used by the adversarial member to look for known counterexamples — a different information source, not a different personality. Personality is free and therefore worthless as a source of independence.
 
 ---

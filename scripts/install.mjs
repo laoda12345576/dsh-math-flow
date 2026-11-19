@@ -50,6 +50,12 @@ const SHIPPED = [
     id: 'research-gate',
     role: 'order gate — survey before computing',
   },
+  {
+    pkg: 'dsh-plugin-paper',
+    dir: 'packages/paper',
+    id: 'paper', // the component id is `paper`, not the package name
+    role: 'literature — legitimate full text, and citations that exist',
+  },
 ];
 
 /** Other people's work. Consumed, never vendored. See docs/05-dependencies.md. */

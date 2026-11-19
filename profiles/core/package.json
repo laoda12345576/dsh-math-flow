@@ -5,7 +5,8 @@
   "dependencies": {
     "dsh-plugin-lean-math": "file:<repo>/packages/lean-math",
     "dsh-plugin-claim-verify": "file:<repo>/packages/claim-verify",
-    "dsh-plugin-research-gate": "file:<repo>/packages/research-gate"
+    "dsh-plugin-research-gate": "file:<repo>/packages/research-gate",
+    "dsh-plugin-paper": "file:<repo>/packages/paper"
   },
   "dsh": {
     "profile": {
@@ -14,7 +15,8 @@
         "@deepseek-ai/dsh-web-app",
         "dsh-plugin-lean-math",
         "dsh-plugin-claim-verify",
-        "dsh-plugin-research-gate"
+        "dsh-plugin-research-gate",
+        "dsh-plugin-paper"
       ],
       "patchReload": "live"
     }

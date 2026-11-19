@@ -6,7 +6,7 @@
 
 [English](README.md) · 依靠 DeepSeek Harness（`dsh`）、Lean 4 和 Mathlib。
 
-> **今天仓库里实际有什么。** 三个插件、一个安装器、一套测量协议。下面的架构是八层，共点名十四个插件：三个在 `packages/` 里，三个是按版本锁定的第三方包，其余八个仍留在作者的单机环境里——清单和原因都写在 [`packages/README.md`](packages/README.md)。这个仓库不装作它们都在，因为一份点名了不存在的包的清单，比一个诚实的缺口更糟。
+> **今天仓库里实际有什么。** 四个插件、一个安装器、一套测量协议。下面的架构是八层，共点名十四个插件：四个在 `packages/` 里，三个是按版本锁定的第三方包，其余七个仍留在作者的单机环境里——清单和原因都写在 [`packages/README.md`](packages/README.md)。这个仓库不装作它们都在，因为一份点名了不存在的包的清单，比一个诚实的缺口更糟。
 
 ---
 
@@ -52,7 +52,7 @@
 观察    watchdog* · mm-toolkit*（绘图 / 反例）
 记忆    meow-memory            ← 只能有一个，绝不放两个
 否定    misakanet              ← 失败教训，不是通用检索
-文献    paper* · zotero        ← 证据库，不是通用 RAG
+文献    paper · zotero*        ← 证据库，不是通用 RAG
 输出    wps-bridge*            ← 通往 .docx/.xlsx/.pptx 的唯一路径
 运维    hotloader* · market · purge · web
 ```
@@ -78,7 +78,7 @@
 
 ```bash
 git clone https://github.com/laoda12345576/dsh-math-flow && cd dsh-math-flow
-node scripts/install.mjs                 # core：内核 + 冻结断言 + 顺序门禁
+node scripts/install.mjs                 # core：内核 + 冻结断言 + 顺序门禁 + 文献
 ```
 
 ```bash
@@ -90,14 +90,17 @@ node scripts/doctor.mjs                  # 缺哪个工具链（只读）
 
 缺 `node`、`dsh` 或 `pnpm` 时，安装器会拒绝启动；它逐个包安装，所以中途失败会留下一个可续跑的 profile；已经装到锁定版本的会跳过。最后一步读 `dsh --profile <名字> --dump-config`，核对每个插件的**实际组件 id**——不是包名，因为 `misakanet@3.5.0` 实际挂载成 `misakanet-mcp`，一个按包名匹配的校验器会把健康的安装报成坏的。
 
-`--tier full` 最后一步的输出（core 到 `research-gate` 就停）：
+core 档最后一步的输出（实测，不是示意）：
 
 ```
   ok   lean-math  (dsh-plugin-lean-math)
   ok   claim-verify  (dsh-plugin-claim-verify)
-  ok   misakanet-mcp  (misakanet)
-  profile math-flow: 159 components, 0 of 6 expected plugins missing
+  ok   research-gate  (dsh-plugin-research-gate)
+  ok   paper  (dsh-plugin-paper)
+  profile math-flow: 156 components, 0 of 4 expected plugins missing
 ```
+
+`--tier full` 会再多三行：`agent-teams`、`meow-memory`、`misakanet-mcp`。
 
 然后：
 
@@ -125,9 +128,9 @@ dsh --profile math-flow        # 启动
 
 | 层 | 来自哪里 | 状态 |
 |---|---|---|
-| 内核（`lean-math`）、证据（`claim-verify`）、顺序（`research-gate`） | 本仓库 `packages/` | 已发布 |
+| 内核（`lean-math`）、证据（`claim-verify`）、顺序（`research-gate`）、文献（`paper`） | 本仓库 `packages/` | 已发布 |
 | 记忆、执行、否定知识 | 第三方 npm 包，**只声明不打包** | 锁定在 [`docs/05-dependencies.md`](docs/05-dependencies.md) |
-| 文献、绘图、看门狗、文档输出、运维 | 仍在作者的单机环境里 | 列在 [`packages/README.md`](packages/README.md)，暂时装不了 |
+| 绘图、看门狗、文档输出、运维 | 仍在作者的单机环境里 | 列在 [`packages/README.md`](packages/README.md)，暂时装不了 |
 
 这个区分很要紧：如果你只装 `packages/` 里的东西，你得到的是一个内核加一道门，但没有记忆、没有团队、没有失败日志。流水线是它们的组合。
 
@@ -136,7 +139,7 @@ dsh --profile math-flow        # 启动
 ## 目录结构
 
 ```
-packages/     3 个已发布插件；另外 8 个只列清单，不在仓库里
+packages/     4 个已发布插件；另外 7 个只列清单，不在仓库里
 profiles/     core 和 full 两份清单，以及编码团队策略的 patch 层
 scripts/      install.mjs（一条命令）和 doctor.mjs（只读体检）
 docs/         01 架构 · 02 工具表 · 03 失败日志 · 04 测量 · 05 依赖
@@ -184,7 +187,7 @@ patches/      依赖特定宿主的补丁，连同目标版本一起隔离
 
 ## 状态
 
-Alpha。`packages/` 里有三个插件且今天就能装（`lean-math`、`claim-verify`、`research-gate`）；另外八个按依赖顺序列在 [`packages/README.md`](packages/README.md)，写明各自在等什么，并且是刻意缺席的——一份引用了它们的清单会解析失败，那比一个诚实的缺口更糟。`profiles/` 里的配置已脱敏。依赖特定 `dsh` 构建的宿主补丁应该放在 [`patches/`](patches/README.md)，该目录当前刻意为空。
+Alpha。`packages/` 里有四个插件且今天就能装（`lean-math`、`claim-verify`、`research-gate`、`paper`）；另外七个按依赖顺序列在 [`packages/README.md`](packages/README.md)，写明各自在等什么，并且是刻意缺席的——一份引用了它们的清单会解析失败，那比一个诚实的缺口更糟。`profiles/` 里的配置已脱敏。依赖特定 `dsh` 构建的宿主补丁应该放在 [`patches/`](patches/README.md)，该目录当前刻意为空。
 
 **增加一次测量的贡献，比增加一个插件的贡献更受欢迎。**
 

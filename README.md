@@ -6,7 +6,7 @@ Most "agent stack" repos are a screenshot of a plugin list. This one ships the l
 
 Built on DeepSeek Harness (`dsh`), Lean 4, and Mathlib. — [中文](README.zh-CN.md)
 
-> **What is actually here today.** Three plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: three are in `packages/`, three are third-party packages pinned by version, and eight still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
+> **What is actually here today.** Four plugins, one installer, one measurement protocol. The architecture below is eight layers and names fourteen plugins: four are in `packages/`, three are third-party packages pinned by version, and seven still sit in the single-machine setup they were written for — listed, with reasons, in [`packages/README.md`](packages/README.md). The repo does not pretend otherwise, because a manifest naming packages that do not exist is worse than an honest gap.
 
 ---
 
@@ -52,7 +52,7 @@ computation lean-math · proof-harness* · math-strategies* · ollama*
 observation watchdog* · mm-toolkit* (viz / counterexamples)
 memory      meow-memory            ← exactly one, never two
 negative    misakanet              ← failure lessons, not general search
-literature  paper* · zotero        ← evidence store, not generic RAG
+literature  paper · zotero*       ← evidence store, not generic RAG
 output      wps-bridge*            ← the only path to .docx/.xlsx/.pptx
 ops         hotloader* · market · purge · web
 ```
@@ -78,7 +78,7 @@ One command. It creates its own profile (`math-flow`) so your working profile is
 
 ```bash
 git clone https://github.com/laoda12345576/dsh-math-flow && cd dsh-math-flow
-node scripts/install.mjs                 # core: kernel + frozen claims + order gate
+node scripts/install.mjs                 # core: kernel + frozen claims + order gate + literature
 ```
 
 ```bash
@@ -90,14 +90,17 @@ node scripts/doctor.mjs                  # what toolchain is missing (read-only)
 
 The installer refuses to start if `node`, `dsh`, or `pnpm` is missing, installs one package at a time so a failure leaves a resumable profile, and skips anything already at the pinned version. It ends by reading `dsh --profile <name> --dump-config` and checking each plugin's *actual component id* — not the package name, because `misakanet@3.5.0` mounts as `misakanet-mcp` and a verifier that assumes otherwise reports a healthy install as broken.
 
-What the last step prints at `--tier full` (core stops after `research-gate`):
+What the last step prints at the core tier (measured, not illustrative):
 
 ```
   ok   lean-math  (dsh-plugin-lean-math)
   ok   claim-verify  (dsh-plugin-claim-verify)
-  ok   misakanet-mcp  (misakanet)
-  profile math-flow: 159 components, 0 of 6 expected plugins missing
+  ok   research-gate  (dsh-plugin-research-gate)
+  ok   paper  (dsh-plugin-paper)
+  profile math-flow: 156 components, 0 of 4 expected plugins missing
 ```
+
+`--tier full` adds three more lines: `agent-teams`, `meow-memory`, `misakanet-mcp`.
 
 Then:
 
@@ -125,9 +128,9 @@ Three kinds of thing end up in a working pipeline, and they come from three diff
 
 | Layer | Where it comes from | Status |
 |---|---|---|
-| kernel (`lean-math`), evidence (`claim-verify`), ordering (`research-gate`) | `packages/` in this repo | shipped |
+| kernel (`lean-math`), evidence (`claim-verify`), ordering (`research-gate`), literature (`paper`) | `packages/` in this repo | shipped |
 | memory, execution, negative knowledge | third-party npm packages, **declared not vendored** | pinned in [`docs/05-dependencies.md`](docs/05-dependencies.md) |
-| literature, plotting, watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
+| plotting, watchdog, document output, ops | still in the author's single-machine setup | listed in [`packages/README.md`](packages/README.md), not installable yet |
 
 That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination.
 
@@ -136,7 +139,7 @@ Per-plugin notes — what it refuses to do, not just what it does — live in ea
 ## Repository layout
 
 ```
-packages/     3 shipped plugins; the other 8 are listed, not present
+packages/     4 shipped plugins; the other 7 are listed, not present
 profiles/     core + full manifests, and the patch layer that encodes team policy
 scripts/      install.mjs (one command) and doctor.mjs (read-only toolchain report)
 docs/         01 architecture · 02 tool reference · 03 failure log · 04 measurement · 05 dependencies
@@ -184,7 +187,7 @@ Every run records: turns, tool calls, duplicate calls, compactions, human interv
 
 ## Status
 
-Alpha. Three plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`); the other eight are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
+Alpha. Four plugins are in `packages/` and installable today (`lean-math`, `claim-verify`, `research-gate`, `paper`); the other seven are listed in [`packages/README.md`](packages/README.md) in dependency order with what each is waiting on, and are deliberately absent — a manifest that referenced them would fail to resolve, which is worse than an honest gap. Configuration in `profiles/` is de-identified. Host patches that depend on a specific `dsh` build belong in [`patches/`](patches/README.md), which currently and deliberately holds none.
 
 Contributions that add a *measurement* are more welcome than contributions that add a plugin.
 
