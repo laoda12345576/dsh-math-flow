@@ -1,0 +1,40 @@
+# Third-party dependencies
+
+The plugins in `packages/` are the parts built here. They are not the whole pipeline — three of the eight layers are third-party packages that you install yourself. They are listed here instead of being vendored, because they are other people's work and should be consumed as such.
+
+## The three that matter
+
+| Package | Version | Layer | Why this one |
+|---|---|---|---|
+| `meow-memory` | `0.32.4` | memory | **Re-injects after compaction.** Not just "has memory": when the context is compressed it re-injects the long-term snapshot, the project panorama it saw this session, and the originals of content that was written. Most memory plugins go silent exactly when the context is most damaged. |
+| `@nanmicoder/dsh-agent-teams` | `0.1.28` | execution | Persistent members + dependency-aware DAG + mailbox + optional quality gates. Compaction does not erase the roster. A plain subagent is single-level and forgets it was spawned. |
+| `misakanet` | `3.5.0` | negative knowledge | Stores **"how this error was fixed"**, not "what this theorem says". The layer that keeps a refuted path from being walked again three days later. |
+
+Install with exact versions. A bare package name can install the previous release and report success — see failure #7 in [`03-failure-log.md`](03-failure-log.md).
+
+```bash
+dsh plugin --profile <your-profile> add meow-memory@0.32.4
+dsh plugin --profile <your-profile> add @nanmicoder/dsh-agent-teams@0.1.28
+dsh plugin --profile <your-profile> add misakanet@3.5.0
+```
+
+## Supporting packages
+
+| Package | Version / source | Layer | Note |
+|---|---|---|---|
+| `dsh-zotero` | `^0.9.0` | literature | evidence store; UI plus API |
+| `dsh-purge` | `github:YuJunZhiXue/dsh-purge` | ops | rule injection, rewind, skills. Provides the patch layer this repo's `cordis.patch.yml` targets |
+| `dshmarket` | `^1.47.0` | ops | plugin market |
+| `dsh-web` / `@linxin666/dsh-remote-web-ui` | git / `^0.3.23` | ops | UI skins. Pure decoration; not in the task flow |
+
+## Rules that are not negotiable
+
+**One plugin per layer.** The memory layer especially: a large fraction of the ecosystem competes for the same system-prompt injection slot. Two memory plugins do not give two memories — they inject the same paragraph twice, which moves the decay point earlier rather than later.
+
+**Versions are pinned, not floated.** Every breakage in this project that looked like a bug was version skew. Pin, then upgrade deliberately.
+
+**Pin the host too.** `agent-teams` has a compatibility matrix; `clearai-dsh` and `dsh-context` need a newer host than some of these versions support. Upgrading the host is a connected job, not a casual one.
+
+## What is intentionally missing
+
+There is no third-party epistemology layer here — no ontology plugin, no evidence gate as a first-class component. `claim-verify` (in `packages/`) carries part of that role by freezing claims by hash, and human discipline carries the rest. It is a known gap, not a design decision.

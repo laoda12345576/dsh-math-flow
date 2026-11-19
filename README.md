@@ -85,6 +85,17 @@ Requirements: Node ≥ 22.5, `elan` + Lean 4 + Lake on `PATH`, and a local Mathl
 
 Per-plugin install notes live in each `packages/*/README.md`. Optional pieces (`wps-bridge`, `jammers-sim`, `ollama`) are platform- or hardware-specific and can be skipped without breaking the math path.
 
+## What is in this repo, and what you install separately
+
+Only the plugins built here live in `packages/`. Three layers of the pipeline are third-party packages — memory, team execution, and negative knowledge — and they are **declared, not vendored**:
+
+| Layer | Where it comes from |
+|---|---|
+| memory, execution, negative knowledge | third-party npm packages, versions pinned in `docs/05-dependencies.md` |
+| computation, evidence, ordering, literature | `packages/` in this repo |
+
+That split matters: if you install only what is in `packages/`, you get a kernel and a gate but no memory, no team, and no failure log. The pipeline is the combination, and [`docs/05-dependencies.md`](docs/05-dependencies.md) is the part most people skip.
+
 ---
 
 ## How it is measured
