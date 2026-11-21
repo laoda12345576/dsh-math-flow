@@ -11,6 +11,7 @@
   },
   "files": [
     "lib/**/*.js",
+    "pycompat/*.py",
     "cordis.patch.yml",
     "README.md"
   ],

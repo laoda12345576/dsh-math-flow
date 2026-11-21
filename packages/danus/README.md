@@ -41,28 +41,43 @@ Danus 的权限边界是**角色能看到哪些工具**（`danus/gateway/roles.p
 代价是自己维护约 300 行 MCP 客户端（`lib/mcp.js`）。换来的是：不依赖宿主内部 API、
 能报出网关 stderr 里的真实原因、能在进程死掉/挂住时给出可读的话。
 
-## 平台现实：两层对系统的要求不一样
+## 平台：Windows 原生可用，靠一个四处替换的兼容层
 
-这是实测出来的，不是设计选择：
+Danus 是 POSIX 项目，但它对 POSIX 的依赖只有四处，而且全在
+`danus/orchestration/cli.py` 里。插件带了一个 `pycompat/` 目录，通过 `PYTHONPATH`
+排在解释器搜索路径最前面；CPython 启动时会自动 import 里面的 `sitecustomize`，
+所以补丁只作用于插件 spawn 的这个子进程，不改上游一行代码，也不影响机器上任何
+其他 Python。
 
-```
-danus.gateway        stdlib + mcp        →  Windows 上能原生跑（仓库自己的 .venv 就行）
-danus.orchestration  第一行 import fcntl →  Windows 上必然 ModuleNotFoundError
-```
+| 上游用法 | 在 Windows 上会怎样 | `pycompat` 怎么做 |
+|---|---|---|
+| `fcntl.flock(lock, LOCK_EX\|LOCK_NB)` | `ModuleNotFoundError`，模块级 import 就失败，整个 CLI 起不来 | `msvcrt.locking` 锁同一字节，把 `OSError` 转成 `BlockingIOError` |
+| `os.kill(pid, 0)` | **`TerminateProcess(handle, 0)`——探活会把 worker 杀掉**，然后报告它死了 | `OpenProcess` 只查存在性，`ACCESS_DENIED` 视为活着 |
+| `os.getpgid` / `os.killpg` | 属性不存在，`stop --force` 抛 `AttributeError`（上游只捕 `ProcessLookupError`） | 返回 pid 本身 / `taskkill /PID n /T /F` 杀进程树 |
+| `Path("/proc/n/stat")` | 读不到 | 上游已有 `except (OSError, IndexError): return True`，自动退化为「活着」 |
 
-所以配置里 `launch.mode` 是**按目标分开**的，`{gateway: python, cli: wsl}` 是正常配置。
-`auto` 在 Windows 上就按这条差别选。CLI 起不来时它不是抛一段 Python 栈，而是：
+`launch.mode` 仍然**按目标分开**：`auto` 在 Windows 上先试原生 Python + `pycompat`，
+不行才退到 WSL。`{gateway: python, cli: wsl}` 照旧是合法配置。
 
-> the Danus control plane cannot run on native Windows: danus/orchestration/cli.py
-> starts with `import fcntl`, a POSIX-only module. WSL is not usable here (no bash in
-> the DSH default distro)… The gateway (layer A) is unaffected and still works natively.
+实测（Windows 11，仓库自带 venv）：`list`、`new`、`assign`、`status` 全部原生跑通，
+`danus_doctor` 的 `cli` 一项是 `ok`；13 个工具在 dsh 里注册成功。
+
+**还剩一件不是平台问题的事**：`danus start` 要拉起 worker，worker 每一轮是一次模型
+调用。`CODEX_BACKEND=api` 需要 OpenAI 兼容 key，`CODEX_BACKEND=dsh` 需要 bash 去执行
+`bin/codex-dsh`（它把 `codex exec` 翻译成 `dsh --profile headless`）。这一项没有默认
+值，`danus_doctor` 也不会替你猜。
 
 ## 安装
 
 ```bash
-# Danus 侧：先有一个能跑的部署（WSL2 / Linux / macOS）
-git clone https://github.com/frenzymath/Danus.git ~/Danus
+# Danus 侧：必须是 main 分支（默认分支 codex 没有 dsh 后端），
+# 然后用它自己的 bootstrap 生成 venv（gateway 只额外需要 mcp）
+git clone -b main https://github.com/frenzymath/Danus.git ~/Danus
 cd ~/Danus && bash scripts/bootstrap.sh
+```
+
+Windows 上 `bootstrap.sh` 里的 codex 安装会失败，这没关系：网关与控制面都不需要它。
+只要 `python -m venv .venv && ./.venv/Scripts/pip install mcp` 成功即可。
 
 # dsh 侧
 node scripts/install.mjs --profile math-flow --with-danus --danus-root ~/Danus

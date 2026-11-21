@@ -225,14 +225,24 @@ v0.4 起按角色做工具硬隔离：文献官拿不到 `viz_python`，计算�
 无法断言边界有没有被绕过。所以这里每次启动读一次 `tools/list`，原样注册——多一个不
 注册，少一个不补。测试里那条「main 看不到 fact_submit」就是这条边界的哨兵。
 
-**平台现实**（实测，不是设计选择）：`danus.gateway` 只依赖 stdlib + `mcp`，Windows 上
-用仓库自己的 venv 就能跑；而 `danus.orchestration.cli` **第一行就 `import fcntl`**，
-Windows 上必然 `ModuleNotFoundError`。所以 `launch.mode` 是按目标分开的，
-`{gateway: python, cli: wsl}` 是正常配置。CLI 起不来时它给的是一句话，不是一段栈：
+**平台现实**：`danus.gateway` 只依赖 stdlib + `mcp`；`danus.orchestration.cli` 第一行是
+`import fcntl`，那是 Unix 的文件锁。整个 Danus 对 POSIX 的依赖只有四处，所以插件带了
+一个 `pycompat/` 目录，通过 `PYTHONPATH` 只对插件启动的子进程生效：
 
-> the Danus control plane cannot run on native Windows: danus/orchestration/cli.py
-> starts with `import fcntl`, a POSIX-only module. … The gateway (layer A) is
-> unaffected and still works natively.
+| 上游用法 | 在 Windows 上会怎样 | `pycompat` 怎么做 |
+|---|---|---|
+| `fcntl.flock` | `ModuleNotFoundError`，整个 CLI 起不来 | `msvcrt.locking` 锁同一字节 |
+| `os.kill(pid, 0)` | **会 `TerminateProcess`，把正在检查的 worker 杀掉** | `OpenProcess` 只探活 |
+| `os.getpgid` / `os.killpg` | 属性不存在，`stop --force` 崩 | `taskkill /T /F` 杀进程树 |
+| `/proc/<pid>/stat` | 读不到 | 上游已有 `except OSError`，自动退化为「活着」 |
+
+不改上游一行代码，也不往系统里装任何东西。实测（Windows 11 + 仓库自带的 venv）：
+`list` / `new` / `assign` / `status` 全部原生跑通，`danus_doctor` 的 `cli` 一项是 ok。
+`launch.mode` 仍然按目标分开，`{gateway: python, cli: wsl}` 在有 WSL 的机器上照旧可用。
+
+还剩一个不是平台问题的问题：`danus_start` 拉起 worker 需要模型后端（`CODEX_BACKEND=api`
+要 OpenAI key，`dsh` 后端要 bash 去执行 `bin/codex-dsh`）。这一项没有默认值，doctor 不会
+替你猜。
 
 实测：真实 Danus 上四个角色的工具面分别是 `main` 5、`worker` 5（含 `fact_submit`）、
 `verifier` 1、角色拼错 → 1（fail-closed）；`gm_add` 真写进了图；在 dsh 里启动

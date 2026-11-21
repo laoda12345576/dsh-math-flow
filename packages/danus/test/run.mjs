@@ -219,6 +219,32 @@ section('launch')
   ok(bash.command === 'bash' && bash.args[0].endsWith('danus-mcp'), 'bash 模式用 bin/danus-mcp')
 }
 
+section('pycompat（Windows 上的 POSIX 缺口）')
+{
+  const compat = join(dirname(fileURLToPath(import.meta.url)), '..', 'pycompat')
+  ok(existsSync(join(compat, 'fcntl.py')), 'fcntl shim 随包发布')
+  ok(existsSync(join(compat, 'sitecustomize.py')), 'sitecustomize 随包发布')
+
+  const fcntlSrc = readFileSync(join(compat, 'fcntl.py'), 'utf8')
+  ok(/def flock/.test(fcntlSrc) && /msvcrt\.locking/.test(fcntlSrc), 'flock 用 msvcrt.locking 实现')
+  ok(/BlockingIOError/.test(fcntlSrc), 'LOCK_NB 失败转成 BlockingIOError（cli.py 只捕这个）')
+  ok(/os\.lseek\(fd, 0/.test(fcntlSrc), '每次锁都把偏移归零（msvcrt 从当前位置锁）')
+
+  const siteSrc = readFileSync(join(compat, 'sitecustomize.py'), 'utf8')
+  ok(/OpenProcess/.test(siteSrc), '存活探测走 OpenProcess')
+  ok(/os\.kill = kill/.test(siteSrc), 'os.kill 被替换（Windows 原版 sig=0 会 TerminateProcess）')
+  ok(/taskkill/.test(siteSrc), 'killpg 换成 taskkill /T')
+
+  const base = baseConfig().config
+  const pySpec = launchFor(
+    { ...base, launch: { ...base.launch, mode: 'python', python: 'python' } },
+    'cli',
+  )
+  const entries = pySpec.env.PYTHONPATH.split(process.platform === 'win32' ? ';' : ':')
+  ok(entries[0].endsWith('pycompat'), 'pycompat 排在 PYTHONPATH 最前（sitecustomize 只认第一个）', entries[0])
+  ok(entries.includes(ROOT), 'root 仍在 PYTHONPATH 里，否则 import danus 失败')
+}
+
 // ═══ 5. MCP 客户端 ══════════════════════════════════════════════════════════
 section('mcp client')
 {
@@ -369,7 +395,11 @@ section('doctor / verify probe')
   cleanup.push(() => server.close())
 
   const { config } = baseConfig({ verifyUrl: `http://127.0.0.1:${port}/verify` })
+  // DSH_HOME 指向一个不存在的目录：这条用例断言的是「没装 skill 要红」，不能因为
+  // 运行测试的机器上恰好装了（现在这台就装了）就变绿。
+  const noSkills = { ...process.env, DSH_HOME: join(tmpdir(), 'danus-test-no-such-home') }
   const report = await doctor(config, {
+    env: noSkills,
     reprobe: async () => ({ ok: true, tools: ['gm_add', 'gm_search', 'fact_search', 'fact_revoke', 'search_arxiv_theorems'] }),
     registered: [],
   })

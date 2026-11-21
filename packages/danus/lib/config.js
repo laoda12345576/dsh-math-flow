@@ -75,7 +75,12 @@ export function resolveConfig(raw = {}, env = process.env) {
   const launchRaw = { ...DEFAULTS.launch, ...(raw.launch ?? {}) }
   const policyRaw = { ...DEFAULTS.policy, ...(raw.policy ?? {}) }
 
-  const root = expandPath(raw.root || raw.danusRoot || env.DANUS_ROOT || '')
+  const declared = expandPath(raw.root || raw.danusRoot || env.DANUS_ROOT || '')
+  // 传进来的路径可能已经带上了重复分隔符（`D://oss//Danus`，conda 与部分
+  // Windows 工具都会这样写）。它照样能打开文件，但会原样出现在 PYTHONPATH、
+  // 日志和 doctor 里，让一个正常的部署看着像配错了。resolve 把它规范回一个
+  // 分隔符；UNC 路径（\\server\share）会原样保留。
+  const root = declared === '' ? '' : resolve(declared)
   if (root === '') {
     problems.push(
       'no Danus root: set `root:` in the plugin config or export DANUS_ROOT ' +

@@ -192,6 +192,11 @@ Two facts worth knowing before deploying:
 - **`fact_submit` is absent for `main` on purpose.** The orchestrator cannot write truth;
   only a worker submits and only the verifier accepts. If you find a `danus_fact_submit`
   in a `main` session, the bug is in the bridge, not in your config.
-- **The control plane needs POSIX.** `danus/orchestration/cli.py` imports `fcntl`. On
-  Windows the gateway runs natively but `list`/`start`/`stop` do not; the launcher says so
-  in one sentence instead of surfacing a traceback.
+- **The control plane's POSIX surface is four calls.** `danus/orchestration/cli.py` imports
+  `fcntl` at module level and uses `os.kill(pid, 0)`, `os.getpgid`/`os.killpg`, and
+  `/proc/<pid>/stat`. `packages/danus/pycompat/` supplies Windows equivalents for the
+  first three (one byte via `msvcrt.locking`; `OpenProcess` for the probe, because the
+  Windows `os.kill(pid, 0)` is `TerminateProcess` and would kill the worker it is
+  checking; `taskkill /T /F` for the tree), and the fourth degrades through upstream's
+  own `except OSError`. It reaches only the interpreter this plugin spawns, via
+  `PYTHONPATH`.

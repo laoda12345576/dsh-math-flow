@@ -10,17 +10,28 @@
  * 但**两个进程对平台的要求不一样**，这是实测出来的：
  *
  *   danus.gateway        stdlib + `mcp`，Windows 上能原生跑
- *   danus.orchestration  第一行 `import fcntl` → Windows 上必然 ModuleNotFoundError
+ *   danus.orchestration  模块级 `import fcntl`，原生 Windows 上没有这个模块
  *
- * 所以 mode 是按目标分开的（`{gateway: python, cli: wsl}` 是正常配置）。
- * auto 在 Windows 上就是按这条差别选的：网关能用原生 venv 就用，CLI 只能去 WSL。
+ * 后者不等于「只能去 WSL」：它对 POSIX 的依赖只有四处，`pycompat/` 全补上了
+ * （见那个目录的文件头）。所以 auto 在 Windows 上先试原生 Python + pycompat，
+ * 不行再退到 WSL；`{gateway: python, cli: wsl}` 仍然是合法配置。
  */
 
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const WIN = process.platform === 'win32'
+
+/**
+ * Danus 缺的那几个 POSIX 接口的等价实现（`fcntl.flock`、`os.kill(pid,0)`、
+ * `os.killpg`）。目录放在 PYTHONPATH 最前面，CPython 启动时会自动 import
+ * `sitecustomize`，所以只对插件启动的这个子进程生效，不改上游一行代码，
+ * 也不污染机器上任何一个 Python。
+ */
+const COMPAT = join(dirname(fileURLToPath(import.meta.url)), '..', 'pycompat')
+const HAS_COMPAT = existsSync(join(COMPAT, 'fcntl.py'))
 
 /** POSIX shell 单引号转义。值进的是 `export` 列表，不是命令行参数。 */
 export function shQuote(value) {
@@ -160,17 +171,21 @@ function resolveAuto(config, target) {
     if (wslProbe(config).ok && wslProbe(config).root) return 'wsl'
     return 'python'
   }
-  // CLI：Windows 上只能去 WSL。
+  // CLI：Windows 上先试原生 Python + pycompat（fcntl / os.killpg 的等价实现），
+  // 这条路能走通就不需要 WSL；走不通再退到 WSL。
+  const python = findPython(root)
+  if (HAS_COMPAT && python !== '') return 'python'
   const probe = wslProbe(config)
   if (probe.ok && probe.root) return 'wsl'
   throw new Error(
-    'the Danus control plane cannot run on native Windows: danus/orchestration/cli.py ' +
-      'starts with `import fcntl`, a POSIX-only module. ' +
-      `WSL is not usable here (${probe.detail}), and the root is not visible from it ` +
-      `(${probe.root ? 'visible' : 'not visible'}). ` +
-      'Fix one of: install a WSL2 distro with bash and run `bash scripts/bootstrap.sh` ' +
-      'inside it (then set launch.wslDistro), or point launch.command.cli at a POSIX ' +
-      'launcher. The gateway (layer A) is unaffected and still works natively.',
+    'no way to run the Danus control plane on this machine: ' +
+      (python === ''
+        ? 'no Python interpreter was found next to the checkout (expected .venv or runtime/venv), '
+        : 'the bundled pycompat/ directory is missing so `import fcntl` cannot be satisfied, ') +
+      `and WSL is not usable (${probe.detail}). ` +
+      'Fix one of: install the checkout with its venv (`bash scripts/bootstrap.sh`), ' +
+      'set launch.python to an interpreter, install a WSL2 distro, or point ' +
+      'launch.command.cli at your own launcher. The gateway is unaffected.',
   )
 }
 
@@ -216,7 +231,7 @@ function pythonLaunch(config, target, extraArgs) {
     args: ['-m', module, ...extraArgs],
     env: {
       ...gatewayEnv(config),
-      PYTHONPATH: config.root,
+      PYTHONPATH: pythonPath(config.root),
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf-8',
       DANUS_PY: python,
@@ -224,6 +239,15 @@ function pythonLaunch(config, target, extraArgs) {
     cwd: config.root,
     label: `${python} -m ${module}`,
   }
+}
+
+/**
+ * pycompat 排在 root 前面。不是风格问题：`sitecustomize` 只会从 sys.path 上
+ * 第一个能找到它的目录加载，而 root 里没有这个文件——但如果将来有，顺序就
+ * 决定了用哪一个。契约写在这里，而不是留给运气。
+ */
+function pythonPath(root) {
+  return HAS_COMPAT ? [COMPAT, root].join(WIN ? ';' : ':') : root
 }
 
 /** 人读的一行，用于日志与 doctor。 */

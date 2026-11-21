@@ -225,11 +225,26 @@ host and the plugin never sees that list, so it cannot assert the boundary held.
 plugin reads `tools/list` once, registers exactly what was advertised, and nothing else.
 The test `main cannot see fact_submit` is the sentinel for that boundary.
 
-**The platform split is measured, not chosen.** `danus.gateway` needs stdlib + `mcp` and
-runs natively on Windows with the checkout's own venv. `danus.orchestration.cli` opens with
-`import fcntl` and cannot run there at all. So `launch.mode` is per target —
-`{gateway: python, cli: wsl}` is a normal configuration, and a missing CLI produces one
-sentence instead of a traceback.
+**The platform split is real, and now handled.** `danus.gateway` needs stdlib + `mcp`.
+`danus.orchestration.cli` opens with `import fcntl`, Unix file locking. Danus's entire
+POSIX surface is four calls, so the plugin ships a `pycompat/` directory that only
+reaches the interpreter it spawns (via `PYTHONPATH`):
+
+| upstream | what Windows does | what `pycompat` does |
+|---|---|---|
+| `fcntl.flock` | `ModuleNotFoundError`, the CLI never starts | locks one byte with `msvcrt.locking` |
+| `os.kill(pid, 0)` | **`TerminateProcess` — the liveness probe kills the worker** | `OpenProcess`, probe only |
+| `os.getpgid` / `os.killpg` | attribute missing, `stop --force` crashes | `taskkill /T /F` on the tree |
+| `/proc/<pid>/stat` | unreadable | upstream's own `except OSError` degrades to "alive" |
+
+No upstream line is modified and nothing is installed system-wide. Measured on
+Windows 11 with the checkout's venv: `list` / `new` / `assign` / `status` all run
+natively, and `danus_doctor` reports `cli: ok`. `launch.mode` is still per target, so
+`{gateway: python, cli: wsl}` keeps working on machines that have WSL.
+
+One thing that is *not* a platform problem: `danus_start` needs a model backend for the
+workers (`CODEX_BACKEND=api` wants an OpenAI key; `dsh` wants bash to run
+`bin/codex-dsh`). There is no default, and the doctor will not guess.
 
 Measured against the real checkout: `main` 5 tools, `worker` 5 (with `fact_submit`),
 `verifier` 1, a misspelled role 1 (fail-closed); `gm_add` really wrote a finding; booting
