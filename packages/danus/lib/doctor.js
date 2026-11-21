@@ -125,13 +125,14 @@ export async function doctor(config, ctx = {}) {
         : (probe.error ?? 'did not start'),
     )
     if (Array.isArray(ctx.registered)) {
-      const registeredNames = ctx.registered.map((r) => r.tool)
-      const unregistered = advertised.filter((t) => !registeredNames.includes(t))
+      const gateway = ctx.registered.filter((r) => r.layer === 'gateway').map((r) => r.tool)
+      const control = ctx.registered.filter((r) => r.layer === 'control').length
+      const unregistered = advertised.filter((t) => !gateway.includes(t))
       add(
         'tool surface',
         unregistered.length === 0,
         unregistered.length === 0
-          ? `${registeredNames.length} gateway tools registered as danus_*`
+          ? `${gateway.length} gateway + ${control} control = ${ctx.registered.length} tools in this session`
           : `advertised but not registered: ${unregistered.join(' ')} (deny list or a schema that failed to map)`,
       )
     }
