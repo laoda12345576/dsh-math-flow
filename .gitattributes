@@ -8,3 +8,8 @@ skills/** text eol=lf
 # whole-file diff, which is how the four tool scripts got "rewritten" once.
 packages/** text eol=lf
 docs/** text eol=lf
+
+# The two READMEs are the front door; a whole-file diff on them is noise that
+# hides the one line that actually changed.
+README.md text eol=lf
+README.zh-CN.md text eol=lf
