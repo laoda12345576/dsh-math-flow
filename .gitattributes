@@ -2,3 +2,9 @@
 # Windows checkout does not hand the model a file whose diffs are all line
 # endings — that already happened once during extraction.
 skills/** text eol=lf
+
+# Same reason, one step earlier: the packages and the docs are read by Node,
+# by the host, and by grep. A CRLF working copy turns a one-line edit into a
+# whole-file diff, which is how the four tool scripts got "rewritten" once.
+packages/** text eol=lf
+docs/** text eol=lf

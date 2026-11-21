@@ -11,6 +11,9 @@ A dsh skill is a `SKILL.md` with frontmatter. The host shows its description, th
 | `research-protocol` | The order: survey → synthesis → verify, what each step has to leave on disk, and ~30 named failure modes with the round they came from. 730 lines. | `research-gate`, `claim-verify`, `paper`, `mm-toolkit` |
 | `cordis-plugin-development` | How to inspect this host before extending it: ask for the real service/slot/schema instead of inferring an API from a name. | writing plugins — read it before `packages/` |
 | `editing-cordis-compositions` | Composition rules: when a plugin row mounts, when it mounts and contributes nothing, and where a patch layer is allowed to touch. | `profiles/full/cordis.patch.yml` |
+| `danus-main` | The main-agent contract for running Danus from dsh: data model, the strategic loop, layer boundaries, which decisions need the operator, and the honesty rule. | `danus` (installed only with `--with-danus`) |
+| `danus-elaboration` | The five-section synthesis template (verdict → routes → interfaces → dangers → bridges) and the consult that turns it into `master_guidance`. | `danus-main` |
+| `danus-initialize` | The first-run interview for a Danus deployment, with verification instead of "it should work". | a fresh Danus install |
 
 `research-protocol` is written in Chinese. It is the one document here that was written *from* the experiment rounds rather than about them, and a rushed translation would cost more than it buys. An English version is a welcome contribution.
 

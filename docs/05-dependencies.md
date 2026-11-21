@@ -52,6 +52,24 @@ The ones below are **other people's** and are deliberately not bundled. They are
 
 **Declare, do not vendor.** A skill copied into this repo stops tracking its upstream and starts aging silently — the same argument as the three packages above, with no version pin to fall back on. The cost is real: an upstream rename breaks the table and nothing will tell you.
 
+## Danus is a system, not a package
+
+`packages/danus` is a bridge, and the thing on the other side is not vendorable:
+
+| what | why it stays outside |
+|---|---|
+| [frenzymath/Danus](https://github.com/frenzymath/Danus) | Apache-2.0, an active upstream with its own orchestration semantics, verify service, and worker lifecycle. Copying it in would fork all four |
+| `mcp` (Python SDK) | the gateway's only third-party dependency; installed by Danus's own `bootstrap.sh`, not by this repo |
+| a verify service | a resident process (`fastapi`/`uvicorn`) with a pidfile and a port. Nothing in a repo can provision that |
+| codex / codex-dsh | the worker runtime. `CODEX_BACKEND=dsh` turns it into headless dsh sessions on DeepSeek models, so no OpenAI key is needed for workers |
+
+The bridge pins nothing, because it talks to Danus over the two interfaces Danus itself
+declares stable (`ARCHITECTURE.md §4`): the six-tool role-gated gateway and the `danus`
+CLI verbs. If upstream changes either, the failure is loud — a tool disappears from
+`tools/list` and `danus_doctor` says `MISSING`, or a verb stops parsing. That is the
+substitute for a version pin, and it is worth stating plainly: **this bridge is only as
+current as the last time someone ran it against a real checkout.**
+
 ## Rules that are not negotiable
 
 **One plugin per layer.** The memory layer especially: a large fraction of the ecosystem competes for the same system-prompt injection slot. Two memory plugins do not give two memories — they inject the same paragraph twice, which moves the decay point earlier rather than later.

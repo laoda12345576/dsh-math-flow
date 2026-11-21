@@ -164,7 +164,7 @@ One public tool, `research_stage`; the machinery is the state machine: stage adv
 
 Five of twelve work on a clean install; seven need a bridge script, which is why this package is not on the default path. When a bridge is missing it returns `ok: false` and names the file.
 
-### 3.6 Skills — the protocol and the manuals (3)
+### 3.6 Skills — the protocol and the manuals (3, plus 3 with Danus)
 
 | Skill | What it is | Lines |
 |---|---|---|
@@ -203,6 +203,41 @@ Six packages stayed on the author's machine: `math-strategies`, `proof-harness`,
 
 The list, with what each is missing, is in [`packages/README.md`](packages/README.md).
 
+### 3.8 `danus` — a bridge to a different system (optional, `--with-danus`)
+
+Unlike 3.1–3.7 this is not one of *this* pipeline's layers. It is a bridge to
+[Danus](https://github.com/frenzymath/Danus) (Dong Bin's group, PKU) — a proof-search
+orchestrator where worker swarms prove, a stateless verifier is the only authority, and
+accepted facts enter a content-addressed graph. Danus already integrates with dsh, but
+only in one direction; its own docs put it plainly: *"Danus does not register tools in a
+dsh web profile."* dsh is the workers' backend, never the main agent's host. This package
+is the other half.
+
+| layer | what it adds | how |
+|---|---|---|
+| A gateway | dsh can see `gm_*` / `fact_*` | an MCP stdio client of our own; one `tools/list` at startup |
+| B control plane | start / stop / inspect the swarm | seven `danus` CLI verbs + `danus_doctor` |
+| C contract | the model knows how to operate it | three skills: `danus-main`, `danus-elaboration`, `danus-initialize` |
+
+**Why A is not "one more mcp-client row in the patch".** Danus's permission boundary is
+*which tools a role can see* — `main` has no `fact_submit` at all. Hand the mount to the
+host and the plugin never sees that list, so it cannot assert the boundary held. Here the
+plugin reads `tools/list` once, registers exactly what was advertised, and nothing else.
+The test `main cannot see fact_submit` is the sentinel for that boundary.
+
+**The platform split is measured, not chosen.** `danus.gateway` needs stdlib + `mcp` and
+runs natively on Windows with the checkout's own venv. `danus.orchestration.cli` opens with
+`import fcntl` and cannot run there at all. So `launch.mode` is per target —
+`{gateway: python, cli: wsl}` is a normal configuration, and a missing CLI produces one
+sentence instead of a traceback.
+
+Measured against the real checkout: `main` 5 tools, `worker` 5 (with `fact_submit`),
+`verifier` 1, a misspelled role 1 (fail-closed); `gm_add` really wrote a finding; booting
+the installed profile in dsh registered 13 tools (5 gateway + 8 control).
+
+It ships no Danus, runs no workers, and does no write-paper (that is a separate MCP
+service). See [`packages/danus/README.md`](packages/danus/README.md).
+
 ## 4. Install
 
 ### 4.1 Requirements
@@ -229,6 +264,7 @@ node scripts/install.mjs                 # core: 4 plugins + 3 skills
 node scripts/install.mjs --with-viz       # + mm-toolkit
 node scripts/install.mjs --tier full      # + mm-toolkit and the three third-party packages
 node scripts/install.mjs --with-purge     # + dsh-purge (the full tier's patch layer needs it)
+node scripts/install.mjs --with-danus --danus-root ~/Danus   # + the Danus bridge
 node scripts/install.mjs --no-skills      # plugins only
 node scripts/install.mjs --skills-dir <dir>    # install skills elsewhere
 node scripts/install.mjs --dry-run        # print the plan

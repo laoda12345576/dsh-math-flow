@@ -157,3 +157,41 @@ Install with `--with-viz`, or take it as part of `--tier full`.
 `dsh-purge` — rule injection, rewind, skill management: `purge` · `purge_apply` · `purge_revert` · `purge_status` · `rewind` · `rules` · `skills`.
 
 `dshmarket` · `dsh-web` · `remote-web-ui` — plugin market, skins, remote UI. Decoration. Not in the task flow.
+
+---
+
+## Danus (a different system, bridged in)
+
+Not part of the eight layers. `packages/danus` hosts the [Danus](https://github.com/frenzymath/Danus)
+proof-search orchestrator — worker swarms plus a verifier-gated fact graph — so a dsh session
+can act as its main agent. Installed only with `--with-danus`.
+
+**Control plane** (local `danus` CLI):
+
+| tool | what it does | refuses when |
+|---|---|---|
+| `danus_doctor` | root, interpreter, CLI, the gateway's *advertised* tool list per role, verify service, skills | never — it is the thing you run when something is wrong |
+| `danus_list` | projects, worker counts, live counts, model | — |
+| `danus_new` | scaffold a project and its worker dirs | project name fails the gateway's own regex |
+| `danus_assign` | write one worker's `TASK.md` | target is a bare project, or the task is empty |
+| `danus_finalize` | record target facts in `TARGET.md` | `approved !== true` (an operator fork in Danus's contract) |
+| `danus_start` | launch worker loops (idempotent via `.pid.lock`) | invalid name |
+| `danus_status` | liveness, round, last activity | invalid name |
+| `danus_stop` | graceful stop at the round boundary | `force` without `approved` |
+
+**Gateway** (role-gated MCP, names follow `danus_` + the server's own name):
+`danus_gm_add` · `danus_gm_search` · `danus_fact_search` · `danus_fact_revoke` ·
+`danus_search_arxiv_theorems` for `role=main`. A `worker` additionally gets
+`danus_fact_submit`; a `verifier` gets only the arXiv search. The plugin registers exactly
+what `tools/list` advertised — it never invents a tool, and `danus_doctor` reports the list
+it actually received, so a role that silently lost access shows up as `MISSING`, not as
+"the model did not use it".
+
+Two facts worth knowing before deploying:
+
+- **`fact_submit` is absent for `main` on purpose.** The orchestrator cannot write truth;
+  only a worker submits and only the verifier accepts. If you find a `danus_fact_submit`
+  in a `main` session, the bug is in the bridge, not in your config.
+- **The control plane needs POSIX.** `danus/orchestration/cli.py` imports `fcntl`. On
+  Windows the gateway runs natively but `list`/`start`/`stop` do not; the launcher says so
+  in one sentence instead of surfacing a traceback.

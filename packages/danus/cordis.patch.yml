@@ -1,0 +1,51 @@
+# dsh-plugin-danus 的 bundle patch。
+#
+# 一行 insert：注册 B 控制面（8 个 danus_* 工具）+ A 网关（启动时按角色原样
+# 注册 `danus_<tool>`）。C 契约是 skill，由 installer 装到 <DSH_HOME>/skills，
+# 插件装不了它。
+#
+# root 故意留空：填死一个机器路径，这份 patch 就只能在那台机器上用。
+# 启动时按 config.root → $DANUS_ROOT → 报错 的顺序解析（config.js）。
+
+- insert:
+    - id: danus
+      name: 'dsh-plugin-danus'
+      config:
+        # Danus 仓库根（含 bin/danus 与 danus/gateway）。留空则读 $DANUS_ROOT。
+        root: ''
+        # 主智能体角色。main 的网关面上没有 fact_submit —— 这是边界，不是缺功能。
+        # 改成 worker/verifier 只在你真的要扮演那个角色时。
+        role: main
+        # 写进 gm_add 的 author 字段，用来区分是谁记的。
+        author: dsh
+        # 默认 <root>/runtime/projects；显式写则覆盖。
+        agentsRoot: ''
+        # 留空则读 $DANUS_VERIFY_URL，再退到 http://127.0.0.1:$VERIFY_PORT/verify。
+        # 它空着的时候 fact_submit 会干净地失败，worker 原地重试——看起来像"在跑"。
+        verifyUrl: ''
+        # 启动方式：auto 在 Windows 上先看 runtime/venv 里的 Windows python，
+        # 再看 WSL；在 Linux/macOS 上直接用 bin/danus-mcp。
+        launch:
+          mode: auto
+          # 留空用默认：bash / wsl.exe / 自动探测到的 python
+          bash: ''
+          wsl: ''
+          python: ''
+          # 完全自己给命令时用（mode=command），argv 数组，优先级最高。
+          command: []
+          startupTimeoutMs: 20000
+          # 一次网关调用的上限。fact_submit 要等 verifier 冷启动核验，别调小。
+          callTimeoutMs: 3600000
+          doctorTimeoutMs: 20000
+        gateway: true
+        control: true
+        # 白名单：留空 = 网关广告什么就注册什么。填了就只注册列出的。
+        tools: []
+        # 黑名单：即使网关广告了也不注册。
+        deny: []
+        injectPrompt: true
+        order: 4950
+        # 不可逆动作的确认。关掉它们等于把 Danus 契约里那两个 fork 交还给模型。
+        policy:
+          finalizeRequiresApproval: true
+          forceStopRequiresApproval: true

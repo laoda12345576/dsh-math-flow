@@ -1,0 +1,41 @@
+{
+  "name": "dsh-plugin-danus",
+  "version": "0.1.0",
+  "description": "Host the Danus proof-search orchestrator inside a dsh session: role-gated gateway tools, the worker-lifecycle CLI, and the main-agent contract.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "danus",
+    "proof-search",
+    "orchestration",
+    "mcp"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laoda12345576/dsh-math-flow.git",
+    "directory": "packages/danus"
+  }
+}

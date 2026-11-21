@@ -164,13 +164,16 @@ v0.4 起按角色做工具硬隔离：文献官拿不到 `viz_python`，计算�
 
 十二项里五项开箱可用，七项要自备桥脚本，所以不放在默认路径上。缺依赖时返回 `ok: false` 并说明缺哪个文件，不会假装成功。
 
-### 3.6 skills — 协议与操作手册（3 个）
+### 3.6 skills — 协议与操作手册（3 个，另 3 个随 Danus）
 
 | skill | 是什么 | 行数 |
 |---|---|---|
 | `research-protocol` | 研究协议本体：三步顺序、每步的交付物、约 30 条具名失败模式 | 731 |
 | `cordis-plugin-development` | 扩展这个宿主之前怎么查：要真实的 service / slot / schema，不要从名字猜 API | 420 |
 | `editing-cordis-compositions` | composition 规则：插件行什么时候挂载、什么时候挂了但不贡献、patch 层能改哪里 | 165 |
+
+另有一组只随 `--with-danus` 安装：`danus-main`（主智能体契约）、`danus-elaboration`
+（五节综合模板 + consult）、`danus-initialize`（首次配置访谈）。它们属于 3.8 那套系统。
 
 `research-protocol` 点名的 8 个脚本（3673 行，只依赖 Node 内置模块与彼此）：
 
@@ -202,6 +205,41 @@ v0.4 起按角色做工具硬隔离：文献官拿不到 `viz_python`，计算�
 - `math-strategies` 实测负收益：在作者的 220 次跑批记录里，15 次失败有 9 次是模型其实写对了、但在策略阶段被丢掉。`proof-harness` 与之同类。这两个不发布，是因为它们没通过自己的实验，不是因为没来得及。
 
 清单和各自缺什么写在 [`packages/README.md`](packages/README.md)。
+
+### 3.8 `danus` — 把另一套系统接进来（可选，`--with-danus`）
+
+这一节和前七节不是一类东西：前面是**这套流水线自己的层**，这里是**通往另一个系统的桥**。
+[Danus](https://github.com/frenzymath/Danus)（北大董彬组的证明搜索编排系统）已经有自己
+的主循环：worker 并行证、无状态 verifier 是唯一权威、通过的事实进内容寻址的图。它的
+集成文档里有一句关键的话——*"Danus does not register tools in a dsh web profile."*
+它把 dsh 当 worker 的后端，从没把 dsh 当主智能体的宿主。这个包补的就是这一半。
+
+| 层 | 做什么 | 实现 |
+|---|---|---|
+| A 网关 | 让 dsh 看得见 `gm_*` / `fact_*` | 自实现 MCP stdio 客户端，启动时读一次 `tools/list` |
+| B 控制面 | 启停那窝 worker | `danus` CLI 的 7 个 verb + `danus_doctor` |
+| C 契约 | 让模型知道怎么用 | 三个 skill：`danus-main` / `danus-elaboration` / `danus-initialize` |
+
+**为什么 A 不是「在 patch 里多挂一行 mcp-client」**：Danus 的权限边界是「角色能看到
+哪些工具」，`main` 根本没有 `fact_submit`。挂载交给宿主，插件就拿不到那份清单，也就
+无法断言边界有没有被绕过。所以这里每次启动读一次 `tools/list`，原样注册——多一个不
+注册，少一个不补。测试里那条「main 看不到 fact_submit」就是这条边界的哨兵。
+
+**平台现实**（实测，不是设计选择）：`danus.gateway` 只依赖 stdlib + `mcp`，Windows 上
+用仓库自己的 venv 就能跑；而 `danus.orchestration.cli` **第一行就 `import fcntl`**，
+Windows 上必然 `ModuleNotFoundError`。所以 `launch.mode` 是按目标分开的，
+`{gateway: python, cli: wsl}` 是正常配置。CLI 起不来时它给的是一句话，不是一段栈：
+
+> the Danus control plane cannot run on native Windows: danus/orchestration/cli.py
+> starts with `import fcntl`, a POSIX-only module. … The gateway (layer A) is
+> unaffected and still works natively.
+
+实测：真实 Danus 上四个角色的工具面分别是 `main` 5、`worker` 5（含 `fact_submit`）、
+`verifier` 1、角色拼错 → 1（fail-closed）；`gm_add` 真写进了图；在 dsh 里启动
+装好的 profile，13 个工具（5 网关 + 8 控制面）注册成功。
+
+它**不**带 Danus 本体、**不**跑 worker、**不**做 write-paper（那是另一个 MCP 服务）。
+详见 [`packages/danus/README.md`](packages/danus/README.md)。
 
 ## 四、安装
 

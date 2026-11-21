@@ -17,8 +17,11 @@ The plugins, extracted from a working single-machine setup. Only the five marked
 | 9 | `wps-bridge` | 8 | ~1.2k | local WPS install | not extracted — platform-coupled |
 | 10 | `hotloader` | 1 | ~0.6k | — | not extracted — dev tool |
 | 11 | `ollama` | 5 | ~0.7k | local Ollama | not extracted — optional |
+| 12 | `danus` | 8 + 5 gateway | ~1.1k | an existing [Danus](https://github.com/frenzymath/Danus) deploy (venv, `mcp`, verify service) | **in repo** — `--with-danus` only |
 
 `node scripts/install.mjs` installs the four core packages; `--with-viz` adds `mm-toolkit`, and `--tier full` adds it together with the three third-party ones. Anything above marked *not extracted* will fail to resolve if you add it to a manifest by hand — that is why the profile templates no longer list them.
+
+`danus` is in a different category from the other eleven: it is not part of *this* pipeline, it is a bridge to another system. It is not in any tier because it cannot work without something you have to deploy yourself, and on Windows its control plane cannot run natively at all (`danus/orchestration/cli.py` imports `fcntl`). See its README for the per-layer platform matrix.
 
 `mm-toolkit` is shipped but not on the default path on purpose: five of its twelve tools work on a clean install, seven need helper scripts the repo does not carry. See its README for the matrix.
 

@@ -138,6 +138,39 @@ const SKILLS = [
   },
 ];
 
+/**
+ * Danus 不是流水线的一部分，它是另一套系统，所以不放进任何 tier：它需要你
+ * 自己有一个 Danus 部署（一个完整的证明搜索引擎 + verify 服务）。`--with-danus`
+ * 装的是**桥**，不是引擎。
+ *
+ * 它也不像别的包那样"装上就能用"：root 是每台机器不同的绝对路径，所以安装器
+ * 会把这个路径写进 profile 的 patch 覆写里，而不是让它去猜。
+ */
+const DANUS = {
+  pkg: 'dsh-plugin-danus',
+  dir: 'packages/danus',
+  id: 'danus',
+  role: 'Danus proof-search orchestrator: role-gated gateway + worker lifecycle',
+};
+
+const DANUS_SKILLS = [
+  {
+    name: 'danus-main',
+    dir: 'skills/danus-main',
+    role: 'the main-agent contract — layers, cadence, forks, honesty',
+  },
+  {
+    name: 'danus-elaboration',
+    dir: 'skills/danus-elaboration',
+    role: 'the five-section synthesis, then the strategy consult',
+  },
+  {
+    name: 'danus-initialize',
+    dir: 'skills/danus-initialize',
+    role: 'the first-run interview, with verification instead of claims',
+  },
+];
+
 const TIERS = {
   core: [...SHIPPED],
   full: [...SHIPPED, ...OPTIONAL, ...THIRD_PARTY],
@@ -159,6 +192,9 @@ Options
                       not in core because a first install should not pull in
                       things that cannot run yet)
   --with-purge       also install dsh-purge (git; needs a manual allowBuilds)
+  --with-danus       also install the Danus bridge (needs an existing Danus deploy)
+  --danus-root <p>   path to the Danus checkout (default: $DANUS_ROOT)
+  --danus-role <r>   gateway role for this session (default: main)
   --patch            force copying cordis.patch.yml (default: full tier only)
   --no-patch         never copy cordis.patch.yml into the profile
   --skills-dir <p>   where to install skills (default: <DSH_HOME>/skills)
@@ -173,6 +209,10 @@ What it installs, in order
   2. the skills, into <DSH_HOME>/skills — a plugin cannot install these, and
      without them the gate refuses without saying what would have passed
 
+With --with-danus it also writes a '- id: danus' override into the profile's
+cordis.patch.yml carrying the Danus root — a machine path that cannot ship in
+the repo, and that --verify-only could not otherwise check.
+
 What it does not do
   Installing Lean, Mathlib, Python, or Ollama. Those are toolchains, not
   plugins; scripts/doctor.mjs reports what is missing instead of installing it.
@@ -184,6 +224,9 @@ function parseArgs(argv) {
     tier: 'core',
     purge: false,
     viz: false,
+    danus: false,
+    danusRoot: '',
+    danusRole: 'main',
     patch: null,
     force: false,
     skills: true,
@@ -197,6 +240,9 @@ function parseArgs(argv) {
     if (a === '--profile') opts.profile = argv[++i];
     else if (a === '--tier') opts.tier = argv[++i];
     else if (a === '--with-purge') opts.purge = true;
+    else if (a === '--with-danus') opts.danus = true;
+    else if (a === '--danus-root') opts.danusRoot = argv[++i];
+    else if (a === '--danus-role') opts.danusRole = argv[++i];
     else if (a === '--with-viz') opts.viz = true;
     else if (a === '--patch') opts.patch = true;
     else if (a === '--no-patch') opts.patch = false;
@@ -210,6 +256,18 @@ function parseArgs(argv) {
   }
   if (!/^[a-z0-9][a-z0-9._-]*$/i.test(opts.profile ?? '')) throw new Error('profile name must be a plain word');
   if (!TIERS[opts.tier]) throw new Error(`unknown tier: ${opts.tier} (use core or full)`);
+  if (opts.danus) {
+    opts.danusRoot = opts.danusRoot || process.env.DANUS_ROOT || '';
+    if (opts.danusRoot === '') {
+      throw new Error('--with-danus needs --danus-root <path> (or DANUS_ROOT): the bridge mounts a specific Danus checkout');
+    }
+    if (!existsSync(join(opts.danusRoot, 'danus', 'gateway'))) {
+      throw new Error(`${opts.danusRoot} does not look like a Danus checkout (no danus/gateway/)`);
+    }
+    if (!/^(main|worker|verifier|all)$/.test(opts.danusRole)) {
+      throw new Error('--danus-role must be main|worker|verifier|all');
+    }
+  }
   return opts;
 }
 
@@ -410,6 +468,46 @@ function applyPatch(name, opts, installedIds) {
   say(`  → cordis.patch.yml written (${targets.length} blocks)`);
 }
 
+// ── Danus override ──────────────────────────────────────────────────────────
+
+/** YAML 单引号标量：撇号翻倍。路径里有 `'` 的机器确实存在。 */
+const yamlString = (value) => `'${String(value).replace(/'/g, "''")}'`;
+
+/**
+ * 把 Danus 的 root 写进 profile 的 patch，作为**覆写**而不是新组件：
+ *
+ *   - id: danus
+ *     config: { root: '...' }
+ *
+ * 包自带的 bundle patch 已经把这一行建好了（config 里 root 留空），这里只改
+ * 那一个字段。root 是绝对路径，进不了仓库，所以只能安装时写。
+ */
+function applyDanusOverride(name, opts) {
+  if (!opts.danus) return;
+  const dst = join(profileDir(name), 'cordis.patch.yml');
+  const block = [
+    '',
+    '# Written by install.mjs --with-danus. The root is a machine path, so it cannot',
+    '# ship in the package; this override is what makes the bridge point somewhere.',
+    '- id: danus',
+    '  config:',
+    `    root: ${yamlString(opts.danusRoot)}`,
+    `    role: ${yamlString(opts.danusRole)}`,
+    '',
+  ].join('\n');
+  if (opts.dryRun) {
+    say(`  → would append a danus override to ${dst}`);
+    return;
+  }
+  const existing = existsSync(dst) ? readFileSync(dst, 'utf8') : '';
+  if (/^-\s+id:\s*danus\s*$/m.test(existing)) {
+    say('  · danus override already present, left as-is (edit it by hand to change the root)');
+    return;
+  }
+  writeFileSync(dst, existing + block, 'utf8');
+  say(`  → danus override appended (root=${opts.danusRoot}, role=${opts.danusRole})`);
+}
+
 // ── Skills ──────────────────────────────────────────────────────────────────
 
 const skillsHome = (opts) => (opts.skillsDir ? resolve(opts.skillsDir) : join(DSH_HOME, 'skills'));
@@ -431,13 +529,15 @@ function sameTree(a, b) {
   return left.length > 0 && left === listTree(b).sort().join('|');
 }
 
+const skillSet = (opts) => (opts.danus ? [...SKILLS, ...DANUS_SKILLS] : SKILLS);
+
 function installSkills(opts) {
   const root = skillsHome(opts);
   say('');
   say(opts.dryRun ? 'Skills (would install)' : 'Skills');
   say(`  → ${root}`);
   let failed = 0;
-  for (const s of SKILLS) {
+  for (const s of skillSet(opts)) {
     const src = join(REPO, s.dir);
     const dst = join(root, s.name);
     if (!existsSync(join(src, 'SKILL.md'))) {
@@ -460,7 +560,7 @@ function installSkills(opts) {
 
 function verifySkills(opts) {
   const root = skillsHome(opts);
-  const rows = SKILLS.map((s) => ({ name: s.name, ok: existsSync(join(root, s.name, 'SKILL.md')) }));
+  const rows = skillSet(opts).map((s) => ({ name: s.name, ok: existsSync(join(root, s.name, 'SKILL.md')) }));
   for (const r of rows) say(`  ${r.ok ? 'ok  ' : 'MISS'} skill ${r.name}`);
   const missing = rows.filter((r) => !r.ok).length;
   say(`  skills: ${rows.length - missing} of ${rows.length} present in ${root}`);
@@ -541,6 +641,7 @@ function main() {
   const expected = [...TIERS[opts.tier]];
   if (opts.viz && !expected.some((e) => e.id === 'mm-toolkit')) expected.push(...OPTIONAL);
   if (opts.purge) expected.push(PURGE);
+  if (opts.danus) expected.push(DANUS);
 
   if (opts.verifyOnly) {
     const pluginCode = verify(opts.profile, expected);
@@ -584,6 +685,7 @@ function main() {
     ),
   );
   applyPatch(opts.profile, opts, installedIds);
+  applyDanusOverride(opts.profile, opts);
 
   say('');
   say('Verify');
